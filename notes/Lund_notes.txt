@@ -1,0 +1,50 @@
+Abstract
+    specs as definition of program
+    lists actual achievements (we show that...)
+    also lists non-result goals of the text
+
+glossary, list of abbreviations and list of symbols seems smart
+
+Introduction
+    I should look into alternatives (testing, compile time constraints, static-analysis)
+
+    Formal verification = description, specification, verification
+    weaknesses of formal verification: scales poorly, not agile, could obscure implementation errors
+    description of TLA+
+
+    note scope and limitations
+
+Background
+    A lengthy discussion of history is probably outside my scope
+
+    flowcharts -> logic -> temporal logic -> temporal operators -> model checking -> temporal logic of ACTIONS
+    Action: state transition defined by a pair of states (s,t)
+            always []
+            eventually <>
+
+The Chord Protocol
+    circular list of nodes with successors
+    maintains a list through faults by eliminating failed successors from successor list
+
+    not as fault tolerant as claimed
+
+Specification
+    increasing complexity/granularity of specification seems smart
+    modulo pitfalls are interesting, but hopefully not relevant
+    
+    asynchronous messaging as unordered tuples is nice
+
+    check admittance of particular behaviors through time variable might be useful to prove errors
+
+Results
+    state space explosion is worrisome, arguably a dealbreaker
+    especially liveness properties appear to be a problem
+
+
+
+Overall structure is good
+intro (thesis, motivation, scope) -> math background -> the protocol -> the specification -> results
+
+Writing specs at increasing levels of granularity seems smart (especially for distributed/asynch systems)
+
+state space explosion, especially for liveness seems like a potential major problem
