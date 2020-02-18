@@ -1,0 +1,25 @@
+Complex distributed systems underpin simple user interfaces - necessary for high availability, growth and infrastructure.
+
+Model checking is necessary because other methods do not find all errors. These errors are rare, and it is unlikely that human testers will think of and test them all.
+
+Specifications as a tool to bridge the gap between design and implementation. Precise and expressive with choice of abstraction level (ref Lund).
+
+It works in industry, return on investement, like a spreadsheet bla bla blah.
+
+Side benefit: force engineers to think differently. Specify exact requirements/correctness.
+
+Work flow: define correctness -> abstract description -> specify possible errors -> test model
+
+Benefits:
+- A precisely specified design helps make changes and optimizations safely. This usage improves system understanding.
+- Faster than formal proofs (at least in DynamoDB case.)
+- Get the design right, a first step towards correct code. Also avoids correct code implementing a poor design.
+- Gain understanding of the design, which promotes better code
+- 
+
+TLA is not good for real-time guarantees or performance requirements.
+TLA does not provide correct code, but it helps get the design right.
+
+References Zave's checking of Chord in Alloy as inspiration.
+
+"All models are wrong, some are useful"
