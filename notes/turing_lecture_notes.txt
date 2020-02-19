@@ -1,0 +1,20 @@
+Mathematical formal verification is precise and useful, but does not scale (and is difficult for concurrent systems)
+
+Pnueli's landmark paper (should read)
+
+Important factors of modelling logics:
+	- expressiveness (ability to express both programs and constraints/properties)
+	- efficiency (keeping complexity in check. abstractions are a good idea. SYMMETRY)
+
+Structure of a model checker
+
+program -> preprocessor -> model checker -> results (importantly a counter example)
+			    ^formulae
+
+State space explosion breakthroughs:
+ - symbolic checking with ordered binary decision diagrams (efficient for concurrent systems and large state spaces)
+ - reduce order of concurrent systems by isolating independent events
+ - bounded checking: ignore some states (by solving SAT)
+ - abstraction refinement loop (reduce number of states by choosing a higher level of abstraction)
+   - NOTE: properties hold through refinement mappings, but counterexamples may not
+
