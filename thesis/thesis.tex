@@ -1,0 +1,73 @@
+\documentclass{uit-thesis}
+
+\usepackage[backend=biber, sorting=none]{biblatex}
+\addbibresource{sources.bib}
+
+
+\begin{document}
+
+\title{Formal Verification of a Concurrent Hashmap}
+% \subtitle{Subtitle}% Note: this is optional, and may be commented out
+\author{Åsmund Aqissiaq Arild Kløvstad}
+\thesisfaculty{Faculty of Science and Technology \\ Department of Computer Science}
+\thesisprogramme{INF-2990 Bachelor's thesis in Informatics \today{}}
+
+\maketitle
+
+\frontmatter
+
+\tableofcontents
+
+\mainmatter
+
+\chapter{Introduction}
+\section{Thesis}
+\section{Method/scope}
+\section{Outline}
+
+\chapter{Background}
+% \vfill{}
+\paragraph{Model Checking: Algorithmic Verification and Debugging\cite{Clarke2009}}
+In the Turing Lecture by the winners of the 2007 Turing Award, Edmund Clarke, Allen Emerson and Joseph Sifakis they describe the develpment and use of model checkers as a verification method for computer systems. Previous efforts to prove correctness had been focused on formal proofs which have three key shortcomings:
+\begin{enumerate}
+    \item they require human ingenuity,
+    \item they are difficult to work with in concurrent and distributed systems,
+    \item they scale poorly with system size and complexity.
+\end{enumerate}
+Instead, they propose algorithmic model checkers.
+\\\\
+With this method a Temporal Logic is used to specify the correct behavior of a system and the model checker verifies that this behavior is not violated by exploring the state space of the model. Importantly, such model checkers produce a counter example -- an example of incorrect behavior -- which makes debugging and correcting the system easier.
+Key properties of a temporal logic are \textit{expressiveness} and \textit{efficiency}.
+\\\\
+Model checking also scales poorly with system complexity, so several techniques are introduced to deal with "state space explosion"
+\begin{itemize}
+    \item symbolic checking of ordered binary decision diagrams
+    \item isolation of independent events in concurrent systems
+    \item bounded checking by solving SAT
+    \item reduce state space by increasing level of abstraction
+    \begin{itemize}
+        \item if counterexamples are found a lower abstraction level is needed, but "good" properties hold through abstraction mappings
+    \end{itemize}
+\end{itemize}
+
+
+\paragraph{How Amazon Web Services Uses Formal Methods\cite{Amazon2015}}
+Amazon's AWS services are all underpinned by large and complex distributed systems. This is necessary for high availability, growth and cost-effective infrastructure. Traditionally these systems have been tested by savvy engineers who know what to test and look for. However, some errors are very rare and will very likely slip through such testing. To catch these errors they employ model checking (with TLA+).
+\\\\
+The PlusCal or TLA+ specifications work as a tool to bridge the gap between design and implementation. Designs are expressive, but inprecise while the implementation is precise, but hides overall structure. Through a choice of abstraction level, specifications can bridge this gap and provide both. An expressive specification also provides useful documentation of the system.
+\\\\
+The key benefits of model checkers at Amazon are:
+\begin{itemize}
+    \item a precisely specified design helps make changes and optimizations safely. This usage improves system understanding.
+    \item they are faster than formal proofs
+    \item a correct design and the understanding the specs provide promote better, more correct code.
+\end{itemize}
+
+\section{TLA (or Ivy, I guess)}
+\section{Split-Ordered List Hashmap}
+
+\backmatter
+
+\printbibliography{}
+
+\end{document}

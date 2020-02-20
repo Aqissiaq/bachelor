@@ -1,0 +1,140 @@
+
+%% bare_conf.tex
+%% V1.4
+%% 2012/12/27
+%% by Michael Shell
+%% See:
+%% http://www.michaelshell.org/
+%% for current contact information.
+%%
+%% This is a skeleton file demonstrating the use of IEEEtran.cls
+%% (requires IEEEtran.cls version 1.8 or later) with an IEEE conference paper.
+%%
+%% Support sites:
+%% http://www.michaelshell.org/tex/ieeetran/
+%% http://www.ctan.org/tex-archive/macros/latex/contrib/IEEEtran/
+%% and
+%% http://www.ieee.org/
+
+\documentclass[journal]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amscd}
+\usepackage{xspace}
+\usepackage{mathtools}
+\usepackage{wasysym}
+\usepackage{ifsym}
+\usepackage{bm}
+\usepackage{upgreek}
+\usepackage[backend=biber, sorting=none]{biblatex}
+\addbibresource{sources.bib}
+
+% Add the compsoc option for Computer Society conferences.
+%
+% If IEEEtran.cls has not been installed into the LaTeX system files,
+% manually specify the path to it like:
+% \documentclass[conference]{../sty/IEEEtran}
+
+
+\begin{document}
+
+
+\title{{\large INF-2990 Bachelor's Thesis in Informatics} \\ 
+{\LARGE Verification of correctness of a concurrent hash map with TLA+}}
+
+
+\author{Åsmund Aqissiaq Arild Kløvstad - Advisor: Håvard D. Johansen}
+\date{\today}
+
+% make the title area
+\maketitle
+
+% no keywords
+
+
+\IEEEpeerreviewmaketitle
+
+\textit{"The prevalence of programming errors has led to an interest in proving the correctness of programs"}
+
+\section{Introduction}
+
+
+\subsection{Thesis}
+Shalev et al.'s concurrent hashmap can be implemented as a TLA+ specifcation and shown to be correct.
+\\
+The purpose of this specification is to increase confidence in model checkers by showing correspondence with the formal proof of Shalev et al.
+\\
+Additionally, the model will allow us to check other invariants and properties of the protocol like type correctness, liveness and the absence of deadlocks.
+\subsection{Method}
+\begin{enumerate}
+    \item implement the protocol in TLA+
+    \begin{enumerate}
+        \item decreasing levels of abstraction
+    \end{enumerate}
+    \item check for the invariants proven by Shalev et.al using TLC model checker
+\end{enumerate}
+
+\subsection{Outline}
+maybe an outline here
+
+\section{Background}
+
+\subsection{Concurrent programs}
+\subsection{TLA+}
+    \begin{enumerate}
+        \item temporal logic of actions
+        \item the Specification language
+        \begin{itemize}
+            \item syntax?
+        \end{itemize}
+        \item the TLC model checker
+        \begin{itemize}
+            \item state machines
+            \item transition functions
+            \item invariants
+        \end{itemize}
+    \end{enumerate}
+\subsection{Shalev et.al's hashmap}
+    \begin{enumerate}
+        \item hashmaps in general
+        \item resizing
+        \item "lock free" (maybe in the concurrency background)
+        \item buckets
+        \item split-ordering
+        \item dumy nodoes
+    \end{enumerate}
+
+\section{The Specification}
+Low on details for now
+    \begin{enumerate}
+        \item assumptions and abstraction
+        \item step size
+        \item transition function
+        \item specifying invariants
+    \end{enumerate}
+
+\section{Results / evaluation}
+    \begin{enumerate}
+        \item what did we prove?
+        \item is that the same as Shalev et.al claims?
+        \item was TLA+ useful?
+    \end{enumerate}
+
+\section{Conclusion}
+    \begin{enumerate}
+        \item what was done?
+        \item what did we prove / find out?
+        \item further work? maybe its own section
+    \end{enumerate}
+
+
+\printbibliography{}
+
+% that's all folks
+\end{document}
+
+
