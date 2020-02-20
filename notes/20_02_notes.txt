@@ -1,0 +1,13 @@
+1. get thesis template
+2. start writing
+
+main hypothesis: hashmap is correct?
+
+look at ivy (1 day)
+is it different enough from formal proof to be interesting?
+
+maybe implement hashmap, or generate with specs
+
+read papers about formal verification, write a bit about each, yank for my text.
+
+plan B: just theory I guess? hopefully not needed
