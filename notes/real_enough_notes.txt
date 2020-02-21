@@ -1,0 +1,18 @@
+notes on "Formal verification: is it real enough?" by Yaron Wolfsthal and Rebecca M. Gott
+
+Formal Verification (FV) is used to mean formal verification by model checking.
+
+FV is described but not extensively used (2005)
+
+Bugs discovered by FV are complementary to those discovered by simulation (testing)
+
+FV can:
+    1. Start early in the design process
+    2. Cover ALL possibilities (except for state space explosion)
+    3. Faster simulation
+
+FV has a bad rep because it requires upfront investment, seems difficult, and testing is "good enough"
+
+Recommendations (in industrial setting)
+- scope early
+- communication between implementation and FV team

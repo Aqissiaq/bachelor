@@ -66,6 +66,18 @@ The key benefits of model checkers at Amazon are:
 \section{TLA (or Ivy, I guess)}
 \section{Split-Ordered List Hashmap}
 
+Maybe a description of hashmaps in general here? or is that assumed knowledge?\\\\
+
+Shalev et al.\cite{Shalev2006} present the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
+\\\\
+Hashmaps are a key building block in many important systems [citation needed], but are difficult to implement concurrently. In particular, the resizing (extending) of the table is difficult to do atomically because at the very least a node must be moved from one list to another. In order to avoid conflicts and loss of data in this process some overhead is required which impacts performance.
+\\\\
+The key insight of Shalev et al. is to flip the process upside down. Instead of moving nodes between buckets, they suggest moving the buckets among a statically ordered list of nodes. This requires an ordering of the list in which a bucket can always be split into two new buckets while their contents remain correct. A node should always reside in the bucket corresponding to its key $\mod 2^i$ where $2^i$ is the current size of the table. 
+\paragraph{Split-Ordered Lists}
+are introduced to solve this problem. By sorting the keys according to their reversed binary representation they obtain a list which can be always be split into buckets $\mod 2^i$. This is because such an ordering corresponds to difference in the keys' $i$th least significant bit, which is equivalent to having a different remainder $\mod 2^i$.
+\\\\
+In order to deal with the problems caused by removing nodes pointed to by hash table entries dummy nodes with the bucket value are introduced. These nodes signify the start of a bucket and are recursively initialized when an item is inserted into an unitialized bucket. To distinguish dummy nodes from regular nodes in the list, regular node keys have their most significant bit set to 1 before being reversed.
+
 \backmatter
 
 \printbibliography{}

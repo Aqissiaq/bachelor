@@ -1,0 +1,30 @@
+Notes on "Split-Ordered Lists: Lock-Free Extensible Hash Tables" by Ori Shalev and Nir Shavit (2006)
+
+First lock-free extensible hash table running on concurrent architectures.
+
+Extensible hash tables serve as a key building block in many systems. (no citation)
+
+This one uses only load, store and CAS and is based on recursively split-ordered list structure.
+Michael [2002a] implements a lock-free hashmap, but it is not extensible.
+
+What is the problem?
+atomic resizing seems impossible because a node needs to be moved from one list to another
+in order to avoid loss of data we need some "replication management" which introduces overhead and prevents constant time
+
+Split-ordered lists:
+instead of moving items between buckets, move buckets among items
+bucket is initialized pointing to a dummy node which precedes the items in the bucket
+buckets can be moved in a single CAS
+list needs to be ordered in a way that makes "splitting" into buckets possible: recursive split-ordering
+
+size of table is always 2^i and we use a modulo 2^i hash
+split ordering is achieved by ordering on binary reversal ("magically, yet perhaps not surprisingly")
+having a different remainder mod 2^i corresponds to a different ith least significant bit (here is the magic)
+
+details:
+dummy nodes for the nodes pointed to by the table entries
+recursively initialize parent (dummy) nodes
+non-dummy nodes are bit-wise OR-ed with 0x800.. to distinguish dummies
+
+
+NOTE: any concurrent list will work (could be separate part of specs)
