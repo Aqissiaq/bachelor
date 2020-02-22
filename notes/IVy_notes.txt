@@ -1,0 +1,37 @@
+questions:
+- Can IVy generate implementation?
+    no
+- Is it expressive enough?
+    seems like it, but hard to gauge
+- theoretical foundations: TL? Something else?
+    state and procedures. decidable logics
+- does it seem like fun?
+    kind of cool. from introductory examples it appears more suited to developing protocols, rather than checking existing ones
+
+HOME (http://microsoft.github.io/ivy/)
+transparency:
+IVy wants to be interactive and visual to make failures human understandable. (what does that mean?)
+looks for simple failure scenarios and shows them visually
+decidable logic: IVy wants to reduce all proof obligations to decidable logics
+
+design artifacts (?):
+modular and composable specs
+generates oracles and test benches for implementation
+
+
+
+THE LANGUAGE (http://microsoft.github.io/ivy/language.html)
+
+3 things:
+    1. data values (things that can be stored and sent)
+    2. function values (pure functions with no side effects)
+    3. procedures (functions with side effects)
+
+data and function values can be stored and passed around, procedures can not.
+no references
+all actions are isolated(atomic) (need to choose appropriate granularity for actions to check concurrent systems, I guess)
+
+a program describes objects (state) and actions (procedures) on those objects
+semicolons separate actions in time, not terminate statements (cool)
+nondeterminism both in conditionals and assignments
+assertions: require and ensure assign "blame" to the caller or callee respectively
