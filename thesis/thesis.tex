@@ -1,7 +1,12 @@
 \documentclass{uit-thesis}
 
+\usepackage{enumitem}
 \usepackage[backend=biber, sorting=none]{biblatex}
 \addbibresource{sources.bib}
+
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+
 
 
 \begin{document}
@@ -63,11 +68,41 @@ The key benefits of model checkers at Amazon are:
     \item a correct design and the understanding the specs provide promote better, more correct code.
 \end{itemize}
 
-\section{TLA (or Ivy, I guess)}
+\section{Temporal Logics}
+\paragraph{The Temporal Logic of Programs \cite{Pnueli1977}}
+In The Temporal Logic of Programs\cite{Pnueli1977}, Amir Pnueli proposes a unified approach to the verification of both sequential and concurrent programs. His work seeks to unify approaches to to both, while also presenting a system that emulates the design intuition of programmers. The key concepts in this work are \textit{invariance} -- which covers partial correctness, clean behavior, mutual exlusion and deadlock freedom -- and \textit{eventuality} -- which generalizes these notions to cyclic programs and provides a special case of total correctness.
+\\\\
+A dynamic discrete system is generalized as a three-tuple $\langle S, R, s_0 \rangle$ where $S$ is the set of possible states, $R$ a transition relation, and $s_0$ the initial state of the system. In order to make later constructions easier we further specify
+$$s = \langle \pi, u \rangle$$ where $\pi$ is the control component specifying the location in the program and $u$ is the data component describing the state of any variables and data structures, and
+$$R(\pi, u) = N(\pi, u) \land T(\pi, u)$$ where $N$ describes the control flow and T the change in data such that a step in the execution may be described by
+$$R(\langle \pi, u \rangle , \langle \pi', u' \rangle) \iff \pi' = N(\pi, u) \land u' = T(\pi, u)$$
+To reason about concurrent programs we let states have multiple control components $s = \langle \pi_1, \pi_2,...,\pi_n, u \rangle$ and randomly choose one control component to update in each step. Finally we let $X$ be the set of all reachable states for the system. A predicate $p(s)$ is \textbf{invariant} if $p(s)$ is true $\forall s \in X$
+\\\\
+We can now start to define useful properties of the systems described in this way.
+\begin{itemize}[label={}]
+    \item \textbf{Partial correctness} is the claim that given the correct input, a program produces the correct output. We let $\phi(x)$ be the statement "reaching the end state $\implies$ (correct input $\implies$ correct output)". Partial correctness is equivalent to saying $\phi$ is an invariant.
+    \item \textbf{Clean execution} means the program does not behave illegally, i.e it does not access illegal memory locations or divide by zero. We may define these restrictions as a predicate to make clean execution equivalent to this predicate being invariant.
+    \item \textbf{Mutual exclusion}. Given a critical section $C$, mutual exclusion of the processes $\pi_1$ and $\pi_2$ is described by the invariance of the predicate $\lnot(\pi_1 \in C \land \pi_2 \in C)$.
+\end{itemize}
+In addition to these properties we wish to reason about \textit{temporal} implications. We let time be described by a $t \in \N$ and $H(p,t)$ denote the value of the predicate $p$ at time $t$.
+We then introduce the temporal operator $p \rightsquigarrow q$ to mean $p$ eventually leads to $q$, or formally:
+$$p \rightsquigarrow q: \forall t_1 \exists t_2\ s.t\ t_1 \le t_2,  H(p, t_1) \implies H(q, t_2)$$
+For all times $t_1$ there is a later time $t_2$ such that if $p$ holds at $t_1$, $q$ will hold at $t_2$.
+Armed with eventuality we can define temporally useful properties of systems.
+\begin{itemize}[label={}]
+    \item \textbf{Total correctness} is stronger than partial correctness because it also requires that the program reaches an end state. We can express total correctness as $\langle \pi = l_0, u = \phi\rangle \rightsquigarrow \langle \pi = l_m, u = \psi\rangle$ where $\phi$ denotes correct input, and $\psi$ denotes correct output and $l_0$, $l_m$ are the start and end labeles of the system, respectively.
+    \item \textbf{Accessibility} is the guarantee that some segment $S$ of a program can be reached. It can be expressed by $\pi = l_0 \rightsquigarrow \pi \in S$
+    \item \textbf{Responsiveness}. It is often desirable that some request $p$ will be met by a response $q$. We call this responsiveness and describe it by $r \rightsquigarrow q$.
+\end{itemize}
+
+With all the notation out of the way, define axioms and inferece rules. Then introduce F and G.
+
+
+\section{TLA+}
 \section{Split-Ordered List Hashmap}
 
-Maybe a description of hashmaps in general here? or is that assumed knowledge?\\\\
-
+Maybe a description of hashmaps in general here to set up the later use of table, list, key etc. or is that assumed knowledge?
+\\\\
 Shalev et al.\cite{Shalev2006} present the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
 \\\\
 Hashmaps are a key building block in many important systems [citation needed], but are difficult to implement concurrently. In particular, the resizing (extending) of the table is difficult to do atomically because at the very least a node must be moved from one list to another. In order to avoid conflicts and loss of data in this process some overhead is required which impacts performance.

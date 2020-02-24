@@ -1,0 +1,96 @@
+Notes on The Temporal Logic of Programs (Pnueli 1977)
+
+A unified approach to verification of sequential and parallel programs (ambitious)
+
+INTRODUCTION
+
+key trends: unify sequential and concurrent logic, proof systems emulating design intuition
+
+key concepts:
+invariance. extended to cover partial correctness, clean behavior (no illegal steps), mutual exlusion, safety and deadlock freedom
+eventuality (temporal implication). covers a special case in the property of total correctness. generalization of correct behavior for cyclic/non-functional programs
+
+functional programs are programs with distinct beginnings and ends
+
+
+SYSTEMS AND PROGRAMS
+a dynamic discrete system is a tuple <S, R, s0> where S is the set of possible states, R is the (nondeterministic) transition relation and s0 is the initial state
+
+an execution is a sequence s0,s1,...
+
+deterministic sequential programs are further specified (for simplicity) s.t
+s = < p, u > where p is the control component which assumes a finite number of values and u is the data component
+R = N(p,u) ^ T(p,u) where N modifies control state and T modifies data state
+
+concurrent programs can be specifed by letting states have multiple control components
+s = <p1,p2,..., u >
+we assume that N modifies only one control component at the time, but that the choice of control component is stochastic
+
+we want to establish and prove predicates on states q(s)
+
+let R* be the transitive closure over R, the set of accessible states X = {s | R*(s0,s)}
+
+p(s) is an invariant if p(s) is true for all s in X
+
+we can now define useful properties
+
+    partial correctness: reaching the end state -> (if the input is correct, so is the output)
+    clean execution: some cleanness predicate holds for all states
+    mutual exlusion: let the subset C be the critical section of S. mutex is the statment !(p1 in C ^ p2 in C)
+    deadlock freedom: a predicate on the set of all states that could induce deadlock (this does not seem very powerful)
+
+temporal implication
+
+    eventuality: for all t1 there exists a t2 such that t2 >= t1 and (p1 true at t1) -> (p2 true at t2)
+    total correctness: (starting state ^ correct input) eventually leads to (end state ^ correct output)
+    accesibility: if S the set of states we want to be accessible, accesibility is defined as (p1) eventually leads to (p2 in S)
+    responsiveness: (request) eventually leads to (response)
+
+
+PROOF PRINCIPLES
+
+Invariance:
+if P(s) holds for s0 and if for all s,s1 (P(s) ^ R(s,s1) -> P(s1)),
+then P(s) holds for all s in X
+
+Well founded sets:
+A is a predicate depending on the state s and a natural number n >= 0
+if P(S) -> there exists an n such that A(s,n) and A(s,n) ^ R(s,s1) -> A(s1, n-1) or Q(s)
+the P eventually leads to Q
+
+Reasoning about eventualities:
+an axiomatic system for temporal reasoning about events in a system
+Axioms:
+    for all s, s1 p(s) ^ R(s, s1) -> q(s1) => p leads to q
+    p -> q => p leads to q
+Inference rules:
+    p leads to q and for all s, s1 r(s) ^ R(s,s1) -> r(s1) => (p^r) leads to (q^r)
+    p leads to q, q leads to r => p leads to r
+    p1 leads to q, p2 leads to q => (p1 v p2) leads to q
+    p leads to q => (there exists a up) leads to q
+
+We also use first order predicate calculus (i.e logic)
+
+This system is sound and complete for proving eventualities (assuming bounded nondeterminism)
+
+Applied to sequential programs:
+can prove invariance by turning q(pi, u) into (pi = l0) -> q(l0, u) and construct a conjunction of these for all lables li
+can prove eventuality by writing [pi = l1 ^ p(u)] eventually leads to [pi = l2 and q(u)] and applying the first axiom to repeatedly
+
+Applied to concurrent programs:
+Invariance:
+    if for each process i=1..n:
+        q(pi_i,...,pi_n, u) -> q(pi_1,..,pi_i-1, N(pi_i,u),..pi_n T(pi_i, u))
+    then:
+        q(pi;u) is invariant
+
+    processes can then be fully or partially attached to prove properties of their conjunctions.
+
+
+
+This system seems too weak for temporal reasoning, so we introduce two "tense operators" F and G:
+Let H(t,p) be the statement "the assertion p is true at time t"
+F(p) - there exists some t >= n s.t H(t,p)
+G(p) - for all t, if t >= n then H(t,p)
+
+(this seems equivalent to the "eventually" and "always" operators in TLA+) ((and indeed it pretty much is))
