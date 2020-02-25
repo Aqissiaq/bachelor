@@ -6,8 +6,8 @@
 
 \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\N}{\mathbb{N}}
-
-
+\renewcommand{\implies}{\rightarrow}
+\newcommand{\eventually}{\rightsquigarrow}
 
 \begin{document}
 
@@ -85,19 +85,66 @@ We can now start to define useful properties of the systems described in this wa
     \item \textbf{Mutual exclusion}. Given a critical section $C$, mutual exclusion of the processes $\pi_1$ and $\pi_2$ is described by the invariance of the predicate $\lnot(\pi_1 \in C \land \pi_2 \in C)$.
 \end{itemize}
 In addition to these properties we wish to reason about \textit{temporal} implications. We let time be described by a $t \in \N$ and $H(p,t)$ denote the value of the predicate $p$ at time $t$.
-We then introduce the temporal operator $p \rightsquigarrow q$ to mean $p$ eventually leads to $q$, or formally:
-$$p \rightsquigarrow q: \forall t_1 \exists t_2\ s.t\ t_1 \le t_2,  H(p, t_1) \implies H(q, t_2)$$
+We then introduce the temporal operator $p \eventually q$ to mean $p$ eventually leads to $q$, or formally:
+$$p \eventually q: \forall t_1 \exists t_2\ s.t\ t_1 \le t_2,  H(p, t_1) \implies H(q, t_2)$$
 For all times $t_1$ there is a later time $t_2$ such that if $p$ holds at $t_1$, $q$ will hold at $t_2$.
 Armed with eventuality we can define temporally useful properties of systems.
 \begin{itemize}[label={}]
-    \item \textbf{Total correctness} is stronger than partial correctness because it also requires that the program reaches an end state. We can express total correctness as $\langle \pi = l_0, u = \phi\rangle \rightsquigarrow \langle \pi = l_m, u = \psi\rangle$ where $\phi$ denotes correct input, and $\psi$ denotes correct output and $l_0$, $l_m$ are the start and end labeles of the system, respectively.
-    \item \textbf{Accessibility} is the guarantee that some segment $S$ of a program can be reached. It can be expressed by $\pi = l_0 \rightsquigarrow \pi \in S$
-    \item \textbf{Responsiveness}. It is often desirable that some request $p$ will be met by a response $q$. We call this responsiveness and describe it by $r \rightsquigarrow q$.
+    \item \textbf{Total correctness} is stronger than partial correctness because it also requires that the program reaches an end state. We can express total correctness as $\langle \pi = l_0, u = \phi\rangle \eventually \langle \pi = l_m, u = \psi\rangle$ where $\phi$ denotes correct input, and $\psi$ denotes correct output and $l_0$, $l_m$ are the start and end labeles of the system, respectively.
+    \item \textbf{Accessibility} is the guarantee that some segment $S$ of a program can be reached. It can be expressed by $\pi = l_0 \eventually \pi \in S$
+    \item \textbf{Responsiveness}. It is often desirable that some request $r$ will be met by a response $s$. We call this responsiveness and describe it by $r \eventually s$.
 \end{itemize}
 
-With all the notation out of the way, define axioms and inferece rules. Then introduce F and G.
+With these definitions under our belt, Pnueli defines the necessary axioms and inference rules to reason about the correctness of programs.
 
+\begin{figure}[h!]
+    \begin{equation}\tag{A1}\label{axiom:1}
+        [\forall s, s' p(s) \land R(s,s') \implies q(s')] \Rightarrow p \eventually q
+    \end{equation}
+    \begin{equation}\tag{A2}\label{axiom:2}
+        (p \implies q) \Rightarrow p \eventually q
+    \end{equation}
+\caption{Pnueli's axioms}
+\end{figure}
 
+These axioms define two ways to establish eventuality. \ref{axiom:2} says that any logical implication is also an eventuality. \ref{axiom:2} is a little more involved, but states that if for all consecutive states $p$ being true in the first implies $q$ being true in the second, then $p$ eventually leads to $q$.
+
+\begin{figure}[h]
+    \begin{equation}\tag{R1}\label{rules:1}
+        p \eventually q, \forall s, s' r(s) \land R(s,s') \implies r(s') \Rightarrow (p \land r) \eventually (q \land r)
+    \end{equation}
+    \begin{equation}\tag{R2}\label{rules:2}
+        p \eventually q, q \eventually r \Rightarrow p \eventually r
+    \end{equation}
+    \begin{equation}\tag{R3}\label{rules:3}
+        p_1 \eventually q, p_2 \eventually q \Rightarrow (p_1 \lor p_2) \eventually q
+    \end{equation}
+    \begin{equation}\tag{R4}\label{rules:4}
+        p \eventually q \Rightarrow (\exists u p) \eventually q
+    \end{equation}
+\caption{Pnueli's inference rules}
+\end{figure}
+
+Using these axioms and inference rules as well as first-order logic, Pnueli goes on to formalize invariance and eventuality for sequential programs and concurrent programs.
+
+\begin{itemize}[label={}]
+    \item \textbf{Invariance} of the predicate $q(\pi, u)$ is described by the conjunction $\bigwedge\limits_{i}{\pi=l_i \implies q(l_i, u)}$, asserting that $q$ is true at all points of execution. This method is called an \textit{attachment} of the predicate to the program.
+    \newpage{}
+    In a concurrent program we generalize $q$ to hold when any $\pi_i$ is updated by $N$ and construct either a full attachment
+    $$\bigwedge\limits_{i_1, i_2,...,i_n}{(\pi_1 = i_1 \land \pi_2 = i_2 \land ... \land \pi_n = i_n) \implies q(\pi_1,..,\pi_n,u)}$$ shown here for $n$ concurrent execution threads,
+    or the partial attachment
+    $$\bigwedge\limits_{i}{\pi_1=i \implies q(\pi_1 = i, \pi_2, u)} \land \bigwedge\limits_{j}{\pi_2=j \implies q(\pi_1, \pi_2 = j, u)}$$ shown here for two threads $\pi_1$ and $\pi_2$.
+    \item \textbf{Eventuality} is formulated as the temporal implication $\pi = l_1 \land p(u) \eventually \pi=l_2 \land q(u)$. We can then describe the path between $l_1$ and $l_2$ by a finite sequence of steps and apply \ref{axiom:1} to each step.
+\end{itemize}
+
+Finally, Pnueli introduces two new "tense operators" \textbf{F}uture and \textbf{G}lobal on predicates such that at some time $n$
+$$F(p) = \exists t \geq n \; s.t\; H(t,p)$$
+$$G(p) = \forall t \geq n \; H(t,p)$$
+This lets us describe useful properties such as
+\begin{itemize}[label={}]
+    \item $p \implies F(q)$ -- if $p$ is true now, then at some point in the future $q$ will be true.
+    \item $G(p \implies F(q)$ -- whenever $p$ is true it will eventually be followed by a state in which $q$ is true. (this is equivalent to $p \eventually q$)     
+\end{itemize}
 \section{TLA+}
 \section{Split-Ordered List Hashmap}
 
