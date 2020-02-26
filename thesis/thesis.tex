@@ -26,12 +26,37 @@
 \mainmatter
 
 \chapter{Introduction}
-\section{Thesis}
-\section{Method/scope}
-\section{Outline}
+Concurrent and distributed systems are extremely important in modern software development. Due to the difficulty of developing ever smaller and more powerful CPUs the trend in hardware design since about 2005 has been to increase the number of cores to allow for high levels of parallelization\cite{Tanenbaum2014}. Additionally important areas of computing such as image processing and machine learning lend themselves well to such parallelization. [citation needed, Phuong?] At the same time software as a service and the massive scale industry giants like Amazon require a complex network of distributed systems to provide their functionality robustly and efficiently\cite{Amazon2015}.
+\\\\
+In both small- and large-scale computer systems it is important to ensure correctness. This is especially evident in critical infrastructure, but all scales and importane levels benefit from confidence in the correctness of their systems. [citation needed]
+\\\\
+It is therefore troublesome that such systems are incredibly difficult to design, debug and reason about. The complexity of interactions between processes and sheer number of possible edge cases makes it infeasible for a person to determine correctness.
+\\\\
+Early solutions to this problem include Hoare, Floyd [citations] and Pnueli's\cite{Pnueli1977} temporal logics and Leslie Lamport's Temporal Logic of Actions\cite{Lamport1977} which seek to formalize the execution of programs in order to reason about them with logic. These formal methods proved useful, but laborious\cite{Clarke2009}.
+\\\\
+Building on the work in temporal logics, model checkers seek to minimize the human labor and ingenuity needed to prove correctness. This is done by specifying a model using some system of logic and then letting a model checker exhaustively survey the possible states of the system. This automates the process of proving correctness. One such model checker is the TLC model checker based on Lamport's TLA and incorporated in the TLA+ IDE.
 
-\chapter{Background}
-% \vfill{}
+\section{Thesis}
+Shalev et al.'s split-ordered list design is a correct extensible hashmap for concurrent systems.
+\\\\
+Furthermore it is both possible and check this using a formal model checker, and the results of this will correspond to the properties proven by Shalev et al.
+
+\section{Method}
+In order to prove the correctness of the hashmap, its behavior will be implemented as a specification in TLA+\cite{Lamport_specifying_2002} and the TLC model checker will be used to test the claimed invariants.
+\\\\
+The specification will be developed in stages of increasing granularity, assuming the atomicity of operations to begin with and gradually loosening assumptions.
+
+% \section{Scope?}
+
+\section{Outline}
+\begin{enumerate}[label={}]
+    \item \textbf{\Autoref{ch:background}} discusses the motivation for formal verification and model checking, followed by a description of Temporal Logic in \autoref{sec:TL} and the TLA+ language in \autoref{sec:TLA+}. Finally Shalev et al.'s hashmap design is described in \autoref{sec:hashmap}.
+    \item \textbf{\Autoref{ch:specification}} describes the specification of the hashmap in TLA+ and the development of this specification.
+    \item Finally \textbf{\autoref{ch:results}} describes the results of model checking and discusses these in relation to our thesis in \autoref{sec:discussion}. 
+\end{enumerate}
+
+
+\chapter{Background}\label{ch:background}
 \paragraph{Model Checking: Algorithmic Verification and Debugging\cite{Clarke2009}}
 In the Turing Lecture by the winners of the 2007 Turing Award, Edmund Clarke, Allen Emerson and Joseph Sifakis they describe the develpment and use of model checkers as a verification method for computer systems. Previous efforts to prove correctness had been focused on formal proofs which have three key shortcomings:
 \begin{enumerate}
@@ -68,7 +93,7 @@ The key benefits of model checkers at Amazon are:
     \item a correct design and the understanding the specs provide promote better, more correct code.
 \end{itemize}
 
-\section{Temporal Logics}
+\section{Temporal Logics}\label{sec:TL}
 \paragraph{The Temporal Logic of Programs \cite{Pnueli1977}}
 In The Temporal Logic of Programs\cite{Pnueli1977}, Amir Pnueli proposes a unified approach to the verification of both sequential and concurrent programs. His work seeks to unify approaches to to both, while also presenting a system that emulates the design intuition of programmers. The key concepts in this work are \textit{invariance} -- which covers partial correctness, clean behavior, mutual exlusion and deadlock freedom -- and \textit{eventuality} -- which generalizes these notions to cyclic programs and provides a special case of total correctness.
 \\\\
@@ -145,8 +170,8 @@ This lets us describe useful properties such as
     \item $p \implies F(q)$ -- if $p$ is true now, then at some point in the future $q$ will be true.
     \item $G(p \implies F(q)$ -- whenever $p$ is true it will eventually be followed by a state in which $q$ is true. (this is equivalent to $p \eventually q$)     
 \end{itemize}
-\section{TLA+}
-\section{Split-Ordered List Hashmap}
+\section{TLA+}\label{sec:TLA+}
+\section{Split-Ordered List Hashmap}\label{sec:hashmap}
 
 Maybe a description of hashmaps in general here to set up the later use of table, list, key etc. or is that assumed knowledge?
 \\\\
@@ -159,6 +184,10 @@ The key insight of Shalev et al. is to flip the process upside down. Instead of 
 are introduced to solve this problem. By sorting the keys according to their reversed binary representation they obtain a list which can be always be split into buckets $\mod 2^i$. This is because such an ordering corresponds to difference in the keys' $i$th least significant bit, which is equivalent to having a different remainder $\mod 2^i$.
 \\\\
 In order to deal with the problems caused by removing nodes pointed to by hash table entries dummy nodes with the bucket value are introduced. These nodes signify the start of a bucket and are recursively initialized when an item is inserted into an unitialized bucket. To distinguish dummy nodes from regular nodes in the list, regular node keys have their most significant bit set to 1 before being reversed.
+
+\chapter{TLA+ Specification}\label{ch:specification}
+\chapter{Results}\label{ch:results}
+\section{Discussion}\label{sec:discussion}
 
 \backmatter
 
