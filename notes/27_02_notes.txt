@@ -1,0 +1,15 @@
+Definer et navn på Shalev et al. -> være konkret i tittel (og seinere)
+
+Ønsker assertive, egne påstander (med referanser) ikke andres utsagn
+	"jeg sier dette, og noen andre er enige" ikke "noen andre har sagt dette"
+	sånn er ting, vær litt cocky
+
+Unngå backwards references like "this" på s.5
+
+Split-ordered hashmap might need its own section. (and and diagrams)
+	- pseudocode
+	- figures
+
+Ikke bruk så mye tid på TLA+-bakgrunn
+
+Komme i gang med specs

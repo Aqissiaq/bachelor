@@ -101,7 +101,7 @@ A dynamic discrete system is generalized as a three-tuple $\langle S, R, s_0 \ra
 $$s = \langle \pi, u \rangle$$ where $\pi$ is the control component specifying the location in the program and $u$ is the data component describing the state of any variables and data structures, and
 $$R(\pi, u) = N(\pi, u) \land T(\pi, u)$$ where $N$ describes the control flow and T the change in data such that a step in the execution may be described by
 $$R(\langle \pi, u \rangle , \langle \pi', u' \rangle) \iff \pi' = N(\pi, u) \land u' = T(\pi, u)$$
-To reason about concurrent programs we let states have multiple control components $s = \langle \pi_1, \pi_2,...,\pi_n, u \rangle$ and randomly choose one control component to update in each step. Finally we let $X$ be the set of all reachable states for the system. A predicate $p(s)$ is \textbf{invariant} if $p(s)$ is true $\forall s \in X$
+To reason about concurrent programs we let states have multiple control components $s = \langle \pi_1, \pi_2,...,\pi_n, u \rangle$ and randomly choose one control component to update in each step. Finally we let $X$ be the set of all reachable states for the system. A predicate $p(s)$ is \textbf{invariant} if $p(s)$ is true $\forall s \in X$.
 \\\\
 We can now start to define useful properties of the systems described in this way.
 \begin{itemize}[label={}]
@@ -132,7 +132,7 @@ With these definitions under our belt, Pnueli defines the necessary axioms and i
 \caption{Pnueli's axioms}
 \end{figure}
 
-These axioms define two ways to establish eventuality. \ref{axiom:2} says that any logical implication is also an eventuality. \ref{axiom:2} is a little more involved, but states that if for all consecutive states $p$ being true in the first implies $q$ being true in the second, then $p$ eventually leads to $q$.
+These axioms define two ways to establish eventuality. \ref{axiom:2} says that any logical implication is also an eventuality. \ref{axiom:1} is a little more involved, but states that if for all consecutive states $p$ being true in the first implies $q$ being true in the second, then $p$ eventually leads to $q$.
 
 \begin{figure}[h]
     \begin{equation}\tag{R1}\label{rules:1}
@@ -168,7 +168,7 @@ $$G(p) = \forall t \geq n \; H(t,p)$$
 This lets us describe useful properties such as
 \begin{itemize}[label={}]
     \item $p \implies F(q)$ -- if $p$ is true now, then at some point in the future $q$ will be true.
-    \item $G(p \implies F(q)$ -- whenever $p$ is true it will eventually be followed by a state in which $q$ is true. (this is equivalent to $p \eventually q$)     
+    \item $G(p \implies F(q))$ -- whenever $p$ is true it will eventually be followed by a state in which $q$ is true. (this is equivalent to $p \eventually q$)     
 \end{itemize}
 \section{TLA+}\label{sec:TLA+}
 \section{Split-Ordered List Hashmap}\label{sec:hashmap}
