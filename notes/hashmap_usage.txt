@@ -1,0 +1,7 @@
+Papers that cite Shalev et al.
+
+Lock-free Concurrent Data Structures (https://arxiv.org/abs/1302.2757)
+    - lists Shalev as a relevant hash table for concurrent systems in 2013
+
+Concurrent hash tables for Haskell (https://link.springer.com/chapter/10.1007/978-3-319-45279-1_8)
+    - find that Shalev et al.'s algorithm is the best scaling (though not fastest on 8 cores)
