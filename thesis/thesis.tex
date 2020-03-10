@@ -3,6 +3,7 @@
 \usepackage{enumitem}
 \usepackage[backend=biber, sorting=none]{biblatex}
 \addbibresource{sources.bib}
+\graphicspath{{./figures/}}
 
 \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\N}{\mathbb{N}}
@@ -183,9 +184,34 @@ Hashmaps are a key building block in many important systems [citation needed], b
 \\\\
 The key insight of Shalev et al. is to flip the process upside down. Instead of moving nodes between buckets, they suggest moving the buckets among a statically ordered list of nodes. This requires an ordering of the list in which a bucket can always be split into two new buckets while their contents remain correct. A node should always reside in the bucket corresponding to its key $\mod 2^i$ where $2^i$ is the current size of the table. 
 \paragraph{Split-Ordered Lists}
-are introduced to solve this problem. By sorting the keys according to their reversed binary representation they obtain a list which can be always be split into buckets $\mod 2^i$. This is because such an ordering corresponds to difference in the keys' $i$th least significant bit, which is equivalent to having a different remainder $\mod 2^i$.
+are introduced to solve this problem. By sorting the keys according to their reversed binary representation Shalev et al. obtain a list which can be always be split into buckets $\mod 2^i$. This is because such an ordering corresponds to difference in the keys' $i$th least significant bit, which is equivalent to having a different remainder $\mod 2^i$.
 \\\\
 In order to deal with the problems caused by removing nodes pointed to by hash table entries dummy nodes with the bucket value are introduced. These nodes signify the start of a bucket and are recursively initialized when an item is inserted into an unitialized bucket. To distinguish dummy nodes from regular nodes in the list, regular node keys have their most significant bit set to 1 before being reversed.
+
+\begin{figure}\label{fig:split-order}
+    \includegraphics[width=\textwidth]{split-ordered-list-diagram.png}
+    \caption{The layout of the split-ordered list}
+\end{figure}
+
+\begin{figure}\label{fig:simple-insert}
+\centering
+\subfloat[Initial state]{\includegraphics[width=.5\textwidth]{insert-0.png}}
+\subfloat[Dummy node is created]{\includegraphics[width=.5\textwidth]{insert-1.png}}
+\newline
+\subfloat[Dummy node is inserted in bucket]{\includegraphics[width=.5\textwidth]{insert-2.png}}
+\subfloat[New node is inserted]{\includegraphics[width=.5\textwidth]{insert-3.png}}
+\caption{Insertion without bucket splitting}
+\end{figure}
+
+\begin{figure}\label{fig:insert-expand}
+\centering
+\subfloat[Initial state]{\includegraphics[width=.5\textwidth]{expand-0.png}}
+\subfloat[Table is expanded]{\includegraphics[width=.5\textwidth]{expand-1.png}}
+\newline
+\subfloat[Dummy node for new bucket inserted]{\includegraphics[width=.5\textwidth]{expand-2.png}}
+\subfloat[Table entry points to bucket node]{\includegraphics[width=.5\textwidth]{expand-3.png}}
+\caption{Expansion and bucket splitting}
+\end{figure}
 
 \chapter{TLA+ Specification}\label{ch:specification}
 \chapter{Results}\label{ch:results}
