@@ -186,36 +186,44 @@ Shalev et al.\cite{Shalev2006} present the first lock-free extensible hash table
 \\\\
 Hashmaps are a key building block in many important systems [citation needed], but are difficult to implement concurrently. In particular, the resizing (extending) of the table is difficult to do atomically because at the very least a node must be moved from one list to another. In order to avoid conflicts and loss of data in this process some overhead is required which impacts performance.
 \\\\
-The key insight of Shalev et al. is to flip the process upside down. Instead of moving nodes between buckets, they suggest moving the buckets among a statically ordered list of nodes. This requires an ordering of the list in which a bucket can always be split into two new buckets while their contents remain correct. A node should always reside in the bucket corresponding to its key $\mod 2^i$ where $2^i$ is the current size of the table. 
+The key insight of Shalev et al. is to flip the process upside down. Instead of moving nodes between buckets, they suggest moving the buckets among a statically ordered list of nodes. This requires an ordering of the list in which a bucket can always be split into two new buckets while their contents remain correct. A node should always reside in the bucket corresponding to its key $\mod 2^i$ where $2^i$ is the current size of the table.
+
 \paragraph{Split-Ordered Lists}
 are introduced to solve this problem. By sorting the keys according to their reversed binary representation Shalev et al. obtain a list which can be always be split into buckets $\mod 2^i$. This is because such an ordering corresponds to difference in the keys' $i$th least significant bit, which is equivalent to having a different remainder $\mod 2^i$.
 \\\\
-In order to deal with the problems caused by removing nodes pointed to by hash table entries dummy nodes with the bucket value are introduced. These nodes signify the start of a bucket and are recursively initialized when an item is inserted into an unitialized bucket. To distinguish dummy nodes from regular nodes in the list, regular node keys have their most significant bit set to 1 before being reversed.
-
-\begin{figure}\label{fig:split-order}
+\begin{figure}
     \includegraphics[width=\textwidth]{split-ordered-list-diagram.png}
-    \caption{The layout of the split-ordered list}
+\caption{The layout of the split-ordered list}
+\label{fig:split-order}
 \end{figure}
+In order to deal with the problems caused by removing nodes pointed to by hash table entries dummy nodes with the bucket value are introduced. These nodes signify the start of a bucket and are recursively initialized when an item is inserted into an unitialized bucket. To distinguish dummy nodes from regular nodes in the list, regular node keys have their most significant bit set to 1 before being reversed. This order and the structure of the map can be seen in \autoref{fig:split-order}.
 
-\begin{figure}\label{fig:simple-insert}
-\centering
-\subfloat[Initial state]{\includegraphics[width=.5\textwidth]{insert-0.png}}
-\subfloat[Dummy node is created]{\includegraphics[width=.5\textwidth]{insert-1.png}}
-\newline
-\subfloat[Dummy node is inserted in bucket]{\includegraphics[width=.5\textwidth]{insert-2.png}}
-\subfloat[New node is inserted]{\includegraphics[width=.5\textwidth]{insert-3.png}}
+\begin{figure}
+    \centering
+    \subfloat[Initial state]{\includegraphics[width=.5\textwidth]{insert-0.png}}
+    \subfloat[Dummy node is created]{\includegraphics[width=.5\textwidth]{insert-1.png}}
+    \newline
+    \subfloat[Dummy node is inserted in bucket]{\includegraphics[width=.5\textwidth]{insert-2.png}}
+    \subfloat[New node is inserted]{\includegraphics[width=.5\textwidth]{insert-3.png}}
 \caption{Insertion without bucket splitting}
+\label{fig:simple-insert}
 \end{figure}
 
-\begin{figure}\label{fig:insert-expand}
-\centering
-\subfloat[Initial state]{\includegraphics[width=.5\textwidth]{expand-0.png}}
-\subfloat[Table is expanded]{\includegraphics[width=.5\textwidth]{expand-1.png}}
-\newline
-\subfloat[Dummy node for new bucket inserted]{\includegraphics[width=.5\textwidth]{expand-2.png}}
-\subfloat[Table entry points to bucket node]{\includegraphics[width=.5\textwidth]{expand-3.png}}
+\begin{figure}
+    \centering
+    \subfloat[Initial state]{\includegraphics[height=2in]{expand-0.png}}
+    \newline
+    \subfloat[Table is expanded]{\includegraphics[height=2in]{expand-1.png}}
+    \newline
+    \subfloat[Dummy node for new bucket inserted]{\includegraphics[height=2in]{expand-2.png}}
+    \newline
+    \subfloat[Table entry points to bucket node]{\includegraphics[height=2in]{expand-3.png}}
 \caption{Expansion and bucket splitting}
+\label{fig:insert-expand}
 \end{figure}
+
+Insertion in to the map is done through atomic CAS instructions on the list. If a bucket is not initialized, a dummy node is created and inserted into the list before the new value is added as shown in \autoref{fig:simple-insert}. The map is expanded by doubling the number of buckets and inserting new dummy nodes. Because of the split-ordering of the list, it is always possible to insert a new bucket by splitting an existing one. This process is shown in \autoref{fig:insert-expand}.
+
 
 \chapter{TLA+ Specification}\label{ch:specification}
 \chapter{Results}\label{ch:results}
