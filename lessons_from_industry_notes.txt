@@ -1,0 +1,55 @@
+Notes on "High-level specifications: lessons from industry", Batson and Lamport, 2003
+
+TLA+
+    high.level language for describing systems - especially asynchronous, concurrent and distributed
+    based on TLA
+
+    TLA+ takes math (untyped ZF set theory, first order logic and TLA) and adds very little
+    explicit syntax, modules and primed variables
+
+    structure of a spec (not enforced, but usual)
+        declarations
+        definitions of operations
+        init
+        next
+        liveness properties
+    
+    liveness properties are very difficult to check and are often not used by engineers
+
+    size of specifications
+        algorithms and hardware correctness are usually a few hundred lines
+        high-level systems or protocals may be thousands
+
+    TLC
+        model checker for a subset of TLA+
+        also accepts settings to make a model finite (and therefore checkable)
+
+Use in industry
+    Digital/compaq and HP
+        used just TLA+ to specify Wildfire (a multiprocessor cache coherence protocol)
+        TLC found several bugs in EV7
+
+    Intel
+        complex systems start as a black box and are then refined
+        model checking is used as one of many ways to find bugs
+        TLC is a relatively fast, high-coverage bug finder
+        TLA+ and TLC also provide a measure/heuristic of complexity
+        best used early to inform design along the way
+
+        TLC is also useful for optimizing, since it gives the size of the state space
+
+        TLA+ is better introduced as a hardware description language than a programming language
+
+Common wisdom examined
+    Types: useful in programming, perhaps not in specification languages
+    Information hiding: no need to hide implementation if specs are appropriately abstract
+    Object-orientation: not useful in specs or smaller programs
+    Compositional specs: reason about distributed systems in terms of global invariants, not each component separately. Specifications are useful for high-level bugs in protocols.
+    Hierarchical description: Intel decomposes next into operations in processes (surprising)
+    Hierarchical verificaiton: in TLA+ implementation is implication. not used much in hardware
+
+Conclusions:
+    model checking is only feasible bug catcher for engineers
+    high-level specification languages should be simple
+
+    TLA+ and TLC are practical tools for catching errors and designing systems
