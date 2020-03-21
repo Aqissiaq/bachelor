@@ -56,6 +56,3 @@ KeyUnique == \forall k \in BagToSet(keys) : CopiesIn(k, keys) = 1
 (*******************************************************) 
 KeyHasValue == \forall k \in BagToSet(keys) : ~(Hashmap[k] = NULL)
 =============================================================================
-\* Modification History
-\* Last modified Sat Mar 07 16:11:23 CET 2020 by aqissiaq
-\* Created Sat Mar 07 15:14:36 CET 2020 by aqissiaq

@@ -178,6 +178,7 @@ This lets us describe useful properties such as
     \item $G(p \implies F(q))$ -- whenever $p$ is true it will eventually be followed by a state in which $q$ is true. (this is equivalent to $p \eventually q$)     
 \end{itemize}
 \section{TLA+}\label{sec:TLA+}
+%Needs to cover implementation of one spec by another
 \section{Split-Ordered List Hashmap}\label{sec:hashmap}
 
 Maybe a description of hashmaps in general here to set up the later use of table, list, key etc. or is that assumed knowledge?
@@ -226,6 +227,46 @@ Insertion in to the map is done through atomic CAS instructions on the list. If 
 
 
 \chapter{TLA+ Specification}\label{ch:specification}
+%intro
+% structure of this chapter, structure of the spec, scope
+This chapter describes the structure of the TLA+ specification and the process of writing the specification. First we introduce the goals and scope of the specification, then describe the definitions of necessary data structures and operations. Finally the pieces are put together to summarize the full specification.
+\\\\
+The specification consists of two main parts:
+\begin{enumerate}
+    \item a generic hashmap and
+    \item an [insert name of structure here] \textit{implementing} this map.
+\end{enumerate}
+The generic specification describes the workings of a hashmap with insert and remove operations and ensures that this structure behaves as specified. The [insert name of structure] specification describes Shalev et al.'s specific structure and algorithms for implementing hashmap functionality.
+
+\section{Goal}\label{sec:spec-goals}
+The purpose of our specification is to verify the claims about correctness made by Shalev et al. Because TLA+ is designed for checking liveness and safety properties~\cite{Lund2019} we will not check claims about the performance of the implementation. This leaves 4 invariants:
+\begin{itemize}
+    \item the list beginning at bucket 0 is always sorted
+    \item if a bucket is initialized, then it points to a dummy node which is in the list beginning at bucket 0
+    \item if a key $k$ is in the map, then \texttt{insert(k)} fails. Otherwise $k$ is added to the map
+    \item if a key $k$ is in the map, then \texttt{remove(k)} removes it from the map. Otherwise it fails.
+\end{itemize}
+Additionally we will check \textit{type safety}: at every point of execution, all keys and values are members of predefined key- and value-sets, respectively.
+
+\section{Hashmap for implementation}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../../specification/hashmap.pdf}
+    \caption{The hashmap specification}
+    \label{fig:hashmap-spec}
+\end{figure}
+The base hashmap implementation uses multisets (called "bags" in TLA+) to maintain a set of keys. This is in order to make it possible to have erronous key duplication, because otherwise the semantics of sets would do the job for us.
+\\\\
+The map itself is a function from keys to values. Formally it is a non-surjective, non-injective function from the domain of possible keys to the domain of possible values. Initially the value of the function is the constant NULL for all keys.
+\\\\
+Insert and remove are the two possible operations. Insert picks a key from possible keys, a value from possible values, and attempts to add the key-value pair to the map. Remove only picks a key, and then removes both the key and the value from the map. The Next formula is the disjunction of these operations meaning that each step can be either an insert or a remove.
+\\\\
+In this initial version of the map we test for type correctness, key uniqueness and the presence of values for keys in the map.
+
+\section{Split-ordered List}
+\section{Hashmap operations}
+\section{Putting it all together}
+
 \chapter{Results}\label{ch:results}
 \section{Discussion}\label{sec:discussion}
 
