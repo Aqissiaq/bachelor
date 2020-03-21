@@ -31,15 +31,15 @@
 \mainmatter
 
 \chapter{Introduction}
-Concurrent and distributed systems are extremely important in modern software development. Due to the difficulty of developing ever smaller and more powerful CPUs the trend in hardware design since about 2005 has been to increase the number of cores to allow for high levels of parallelization\cite{Tanenbaum2014}. Additionally important areas of computing such as image processing and machine learning lend themselves well to such parallelization. [citation needed, Phuong?] At the same time software as a service and the massive scale industry giants like Amazon require a complex network of distributed systems to provide their functionality robustly and efficiently\cite{Amazon2015}.
+Concurrent and distributed systems are extremely important in modern software development. Due to the difficulty of developing ever smaller and more powerful CPUs the trend in hardware design since about 2005 has been to increase the number of cores to allow for high levels of parallelization~\cite{Tanenbaum2014}. Additionally important areas of computing such as image processing and machine learning lend themselves well to such parallelization. [citation needed, Phuong?] At the same time software as a service and the massive scale industry giants like Amazon require a complex network of distributed systems to provide their functionality robustly and efficiently~\cite{Amazon2015}.
 \\\\
-Hash tables are an important data structure for a variety of applications because they allow for data retrieval in constant time. Several lock-based hash tables for concurrent systems exist [citations], but the overhead of lock management and difficulty of resizing often make these impractical or inefficient\cite{Shalev2006}. A lock free alternative is proposed by Shalev and Shavit in \cite{Shalev2006}. This approach has proven to be useful\cite{lock-free-structures2013} and scale better than lock-based approaches\cite{Duarte-Haskell2016}.
+Hash tables are an important data structure for a variety of applications because they allow for data retrieval in constant time. Several lock-based hash tables for concurrent systems exist [citations], but the overhead of lock management and difficulty of resizing often make these impractical or inefficient~\cite{Shalev2006}. A lock free alternative is proposed by Shalev and Shavit in \cite{Shalev2006}. This approach has proven to be useful~\cite{lock-free-structures2013} and scale better than lock-based approaches~\cite{Duarte-Haskell2016}.
 \\\\
 In both small- and large-scale computer systems it is important to ensure correctness. This is especially evident in critical infrastructure, but all scales and importance levels benefit from confidence in the correctness of their systems. [citation needed]
 \\\\
 It is therefore troublesome that such systems are incredibly difficult to design, debug and reason about. The complexity of interactions between processes and sheer number of possible edge cases makes it infeasible for a person to determine correctness.
 \\\\
-Early solutions to this problem include Hoare\cite{Hoare1969}, Floyd\cite{Floyd1967} and Pnueli's\cite{Pnueli1977} temporal logics and Leslie Lamport's Temporal Logic of Actions\cite{Lamport1977} which seek to formalize the execution of programs in order to reason about them with logic. These formal methods proved useful, but laborious\cite{Clarke2009}.
+Early solutions to this problem include Hoare~\cite{Hoare1969}, Floyd~\cite{Floyd1967} and Pnueli's~\cite{Pnueli1977} temporal logics and Leslie Lamport's Temporal Logic of Actions~\cite{Lamport1977} which seek to formalize the execution of programs in order to reason about them with logic. These formal methods proved useful, but laborious~\cite{Clarke2009}.
 \\\\
 Building on the work in temporal logics, model checkers seek to minimize the human labor and ingenuity needed to prove correctness. This is done by specifying a model using some system of logic and then letting a model checker exhaustively survey the possible states of the system. This automates the process of proving correctness. One such model checker is the TLC model checker based on Lamport's TLA and incorporated in the TLA+ IDE.
 
@@ -49,7 +49,7 @@ Shalev et al.'s split-ordered list design is a correct extensible hashmap for co
 Furthermore it is possible to check this using a formal model checker, and the results of this will correspond to the properties proven by Shalev et al.
 
 \section{Method}
-In order to prove the correctness of the hashmap, its behavior will be implemented as a specification in TLA+\cite{Lamport_specifying_2002} and the TLC model checker will be used to test the claimed invariants.
+In order to prove the correctness of the hashmap, its behavior will be implemented as a specification in TLA+~\cite{Lamport_specifying_2002} and the TLC model checker will be used to test the claimed invariants.
 \\\\
 The specification will be developed in stages of increasing granularity, assuming the atomicity of operations to begin with and gradually loosening assumptions.
 
@@ -64,7 +64,7 @@ The specification will be developed in stages of increasing granularity, assumin
 
 
 \chapter{Background}\label{ch:background}
-\paragraph{Model Checking: Algorithmic Verification and Debugging\cite{Clarke2009}}
+\paragraph{Model Checking: Algorithmic Verification and Debugging~\cite{Clarke2009}}
 In the Turing Lecture by the winners of the 2007 Turing Award, Edmund Clarke, Allen Emerson and Joseph Sifakis they describe the develpment and use of model checkers as a verification method for computer systems. Previous efforts to prove correctness had been focused on formal proofs which have three key shortcomings:
 \begin{enumerate}
     \item they require human ingenuity,
@@ -88,7 +88,7 @@ Model checking also scales poorly with system complexity, so several techniques 
 \end{itemize}
 
 
-\paragraph{How Amazon Web Services Uses Formal Methods\cite{Amazon2015}}
+\paragraph{How Amazon Web Services Uses Formal Methods~\cite{Amazon2015}}
 Amazon's AWS services are all underpinned by large and complex distributed systems. This is necessary for high availability, growth and cost-effective infrastructure. Traditionally these systems have been tested by savvy engineers who know what to test and look for. However, some errors are very rare and will very likely slip through such testing. To catch these errors they employ model checking (with TLA+).
 \\\\
 The PlusCal or TLA+ specifications work as a tool to bridge the gap between design and implementation. Designs are expressive, but inprecise while the implementation is precise, but hides overall structure. Through a choice of abstraction level, specifications can bridge this gap and provide both. An expressive specification also provides useful documentation of the system.
@@ -101,8 +101,8 @@ The key benefits of model checkers at Amazon are:
 \end{itemize}
 
 \section{Temporal Logics}\label{sec:TL}
-\paragraph{The Temporal Logic of Programs \cite{Pnueli1977}}
-In The Temporal Logic of Programs\cite{Pnueli1977}, Amir Pnueli proposes a unified approach to the verification of both sequential and concurrent programs. His work seeks to unify approaches to to both, while also presenting a system that emulates the design intuition of programmers. The key concepts in this work are \textit{invariance} -- which covers partial correctness, clean behavior, mutual exlusion and deadlock freedom -- and \textit{eventuality} -- which generalizes these notions to cyclic programs and provides a special case of total correctness.
+\paragraph{The Temporal Logic of Programs ~\cite{Pnueli1977}}
+In The Temporal Logic of Programs~\cite{Pnueli1977}, Amir Pnueli proposes a unified approach to the verification of both sequential and concurrent programs. His work seeks to unify approaches to to both, while also presenting a system that emulates the design intuition of programmers. The key concepts in this work are \textit{invariance} -- which covers partial correctness, clean behavior, mutual exlusion and deadlock freedom -- and \textit{eventuality} -- which generalizes these notions to cyclic programs and provides a special case of total correctness.
 \\\\
 A dynamic discrete system is generalized as a three-tuple $\langle S, R, s_0 \rangle$ where $S$ is the set of possible states, $R$ a transition relation, and $s_0$ the initial state of the system. In order to make later constructions easier we further specify
 $$s = \langle \pi, u \rangle$$ where $\pi$ is the control component specifying the location in the program and $u$ is the data component describing the state of any variables and data structures, and
@@ -182,21 +182,23 @@ This lets us describe useful properties such as
 
 Maybe a description of hashmaps in general here to set up the later use of table, list, key etc. or is that assumed knowledge?
 \\\\
-Shalev et al.\cite{Shalev2006} present the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
+Shalev et al.~\cite{Shalev2006} present the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
 \\\\
 Hashmaps are a key building block in many important systems [citation needed], but are difficult to implement concurrently. In particular, the resizing (extending) of the table is difficult to do atomically because at the very least a node must be moved from one list to another. In order to avoid conflicts and loss of data in this process some overhead is required which impacts performance.
 \\\\
-The key insight of Shalev et al. is to flip the process upside down. Instead of moving nodes between buckets, they suggest moving the buckets among a statically ordered list of nodes. This requires an ordering of the list in which a bucket can always be split into two new buckets while their contents remain correct. A node should always reside in the bucket corresponding to its key $\mod 2^i$ where $2^i$ is the current size of the table.
+The key insight of Shalev et al. is to flip the process upside down. Instead of moving nodes between buckets, they suggest moving the buckets among a statically ordered list of nodes. This requires an ordering of the list in which a bucket can always be split into two new buckets while their contents remain correct. A node should always reside in the bucket corresponding to its key $\bmod{2^i}$ where $2^i$ is the current size of the table.
 
 \paragraph{Split-Ordered Lists}
-are introduced to solve this problem. By sorting the keys according to their reversed binary representation Shalev et al. obtain a list which can be always be split into buckets $\mod 2^i$. This is because such an ordering corresponds to difference in the keys' $i$th least significant bit, which is equivalent to having a different remainder $\mod 2^i$.
+are introduced to solve this problem. By sorting the keys according to their reversed binary representation Shalev et al. obtain a list which can be always be split into buckets $\bmod{2^i}$. This is because such an ordering corresponds to difference in the keys' $i$th least significant bit, which is equivalent to having a different remainder $\bmod{2^i}$.
 \\\\
+In order to deal with the problems caused by removing nodes pointed to by hash table entries dummy nodes with the bucket value are introduced. These nodes signify the start of a bucket and are recursively initialized when an item is inserted into an unitialized bucket. To distinguish dummy nodes from regular nodes in the list, regular node keys have their most significant bit set to 1 before being reversed. This order and the structure of the map can be seen in \autoref{fig:split-order}.
+\\\\
+Insertion in to the map is done through atomic CAS instructions on the list. If a bucket is not initialized, a dummy node is created and inserted into the list before the new value is added as shown in \autoref{fig:simple-insert}. The map is expanded by doubling the number of buckets and inserting new dummy nodes. Because of the split-ordering of the list, it is always possible to insert a new bucket by splitting an existing one. This process is shown in \autoref{fig:insert-expand}.
 \begin{figure}
     \includegraphics[width=\textwidth]{split-ordered-list-diagram.png}
 \caption{The layout of the split-ordered list}
 \label{fig:split-order}
 \end{figure}
-In order to deal with the problems caused by removing nodes pointed to by hash table entries dummy nodes with the bucket value are introduced. These nodes signify the start of a bucket and are recursively initialized when an item is inserted into an unitialized bucket. To distinguish dummy nodes from regular nodes in the list, regular node keys have their most significant bit set to 1 before being reversed. This order and the structure of the map can be seen in \autoref{fig:split-order}.
 
 \begin{figure}
     \centering
@@ -205,7 +207,7 @@ In order to deal with the problems caused by removing nodes pointed to by hash t
     \newline
     \subfloat[Dummy node is inserted in bucket]{\includegraphics[width=.5\textwidth]{insert-2.png}}
     \subfloat[New node is inserted]{\includegraphics[width=.5\textwidth]{insert-3.png}}
-\caption{Insertion without bucket splitting}
+\caption{Insertion without bucket splitting}    
 \label{fig:simple-insert}
 \end{figure}
 
@@ -218,11 +220,9 @@ In order to deal with the problems caused by removing nodes pointed to by hash t
     \subfloat[Dummy node for new bucket inserted]{\includegraphics[height=2in]{expand-2.png}}
     \newline
     \subfloat[Table entry points to bucket node]{\includegraphics[height=2in]{expand-3.png}}
-\caption{Expansion and bucket splitting}
+\caption{Expansion and bucket splitting}    
 \label{fig:insert-expand}
 \end{figure}
-
-Insertion in to the map is done through atomic CAS instructions on the list. If a bucket is not initialized, a dummy node is created and inserted into the list before the new value is added as shown in \autoref{fig:simple-insert}. The map is expanded by doubling the number of buckets and inserting new dummy nodes. Because of the split-ordering of the list, it is always possible to insert a new bucket by splitting an existing one. This process is shown in \autoref{fig:insert-expand}.
 
 
 \chapter{TLA+ Specification}\label{ch:specification}

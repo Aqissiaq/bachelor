@@ -1,0 +1,11 @@
+spaces before cite (non-breaking pscae ~)
+
+intro to hashmaps (what are they? why?)
+    big O notation
+    why lock free?
+
+weird spacing before "mod" in hashmap paragraph
+
+maybe split-ordered list hashmap should be its own chapter (if its 2-3 pages)
+
+specification-chapter: basically implementation fra en rapport (se på Jørgen)
