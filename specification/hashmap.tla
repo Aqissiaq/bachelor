@@ -4,55 +4,56 @@
 (*split-ordered list implementation of the data structure                    *)
 (*****************************************************************************)
 
-EXTENDS Integers, Bags
+EXTENDS Integers
 
 CONSTANTS NULL, PossibleKeys, PossibleValues
 
-VARIABLES keys, Hashmap
+VARIABLES keys, map
 
 
 (*******************************************************)
-(*Initial state has empty map and all possible values  *)
+(*Initial state has empty map and no keys              *)
 (*******************************************************)
 
-Init ==     /\ keys = EmptyBag
-            /\ Hashmap = [k \in PossibleKeys |-> NULL]
+HashmapInit ==  /\ keys = {}
+                /\ map = [k \in PossibleKeys |-> NULL]
 
 (*******************************************************)
 (*Insert changes exactly one mapping of the hashmap    *)
+(*and adds one key to the set of keys                  *)
 (*******************************************************)
 Insert ==   \exists k \in PossibleKeys :
                 \exists v \in PossibleValues :
-                    /\ keys' = IF BagIn(k, keys) THEN keys ELSE keys (+) SetToBag({k})
-                    /\ Hashmap' = [Hashmap EXCEPT ![k] = v]
+                    /\ keys' = keys \union {k}
+                    /\ map' = [map EXCEPT ![k] = v]
 
 (*******************************************************)
-(*Remove sets exactly one mapping to the emtpy set     *)
+(*Remove sets exactly one mapping to NULL              *)
 (*******************************************************)
-Remove ==   \exists k \in BagToSet(keys) :
-                /\ keys' = keys (-) SetToBag({k})
-                /\ Hashmap' = [Hashmap EXCEPT ![k] = NULL]
+Remove ==   \exists k \in PossibleKeys :
+                /\ keys' = keys \ {k}
+                /\ map' = [map EXCEPT ![k] = NULL]
 
 (*******************************************************)
 (*Next is either an insert or a remove                 *)
 (*******************************************************)          
-Next ==     \/ Insert
-            \/ Remove
+HashmapNext ==  \/ Insert
+                \/ Remove
 
 (*******************************************************)
-(*TypeOK asserts all keys are of the right type         *)
+(*TypeOK asserts all keys and values are of the right type*)
 (*******************************************************) 
-TypeOK ==   \forall k \in BagToSet(keys) :
+TypeOK ==   \forall k \in keys :
                 /\ k \in PossibleKeys
-                /\ Hashmap[k] \in PossibleValues
-
-(*******************************************************)
-(*KeyUnique asserts there are no duplicate keys        *)
-(*******************************************************) 
-KeyUnique == \forall k \in BagToSet(keys) : CopiesIn(k, keys) = 1
+                /\ map[k] \in PossibleValues
 
 (*******************************************************)
 (*KeyHasValue asserts that every key is mapped to a value*)
 (*******************************************************) 
-KeyHasValue == \forall k \in BagToSet(keys) : ~(Hashmap[k] = NULL)
+KeyHasValue == \forall k \in keys : ~(map[k] = NULL)
+
+(*******************************************************)
+(*The hashmap specification as a temporal formula      *)
+(*******************************************************) 
+HashmapSpec == HashmapInit /\ [][HashmapNext]_<<keys, map>>
 =============================================================================
