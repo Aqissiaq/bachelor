@@ -1,0 +1,6 @@
+evaluation (chapter4):
+    performance?
+    feasibility?
+    coverage?
+
+specification (at least first draft) for next time
