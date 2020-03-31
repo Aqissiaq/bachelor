@@ -35,10 +35,20 @@ Remove ==   \exists k \in PossibleKeys :
                 /\ map' = [map EXCEPT ![k] = NULL]
 
 (*******************************************************)
-(*Next is either an insert or a remove                 *)
+(*Find returns the value stored in the map with key k  *)
+(*******************************************************)
+Find(k) == map[k]
+
+(*******************************************************)
+(*Next is either an insert, a remove or a find         *)
+(*Find(k) returns NULL if not in map, otherwise a value*)
 (*******************************************************)          
 HashmapNext ==  \/ Insert
                 \/ Remove
+                (*Find is not necessary, but shows similar usage in split-order map*)
+                \/ \exists k \in keys : Find(k) \in PossibleValues /\ UNCHANGED <<keys, map>>
+                \/ \exists k \in (PossibleKeys \ keys) : Find(k) = NULL /\ UNCHANGED <<keys, map>>
+
 
 (*******************************************************)
 (*TypeOK asserts all keys and values are of the right type*)

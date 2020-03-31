@@ -246,7 +246,7 @@ The purpose of our specification is to verify the claims about correctness made 
     \item if a key $k$ is in the map, then \texttt{insert(k)} fails. Otherwise $k$ is added to the map
     \item if a key $k$ is in the map, then \texttt{remove(k)} removes it from the map. Otherwise it fails.
 \end{itemize}
-[MIGHT CHANGE:] Rather than having functions return error codes, the generic specification describes the correct behavior of each. This allows us to check invariants by implementation of this generic specification, since implementing it correctly corresponds to correc behavior.
+[MIGHT CHANGE:] Rather than having functions return error codes, the generic specification describes the correct behavior of each. This allows us to check invariants by implementation of this generic specification, since implementing it correctly corresponds to correct behavior.
 Additionally we will check \textit{type safety}: at every point of execution, all keys and values are members of predefined key- and value-sets, respectively.
 
 \section{Hashmap for implementation}
