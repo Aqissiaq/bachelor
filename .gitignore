@@ -299,6 +299,8 @@ TSWLatexianTemp*
 *.toolbox/*.pdf
 *.toolbox/*.tex
 *aux
+tlatex.*
+
 
 # Vim backup file
 *~
