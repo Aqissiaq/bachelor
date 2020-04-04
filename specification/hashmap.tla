@@ -45,10 +45,6 @@ Find(k) == map[k]
 (*******************************************************)          
 HashmapNext ==  \/ Insert
                 \/ Remove
-                (*Find is not necessary, but shows similar usage in split-order map*)
-                \/ \exists k \in keys : Find(k) \in PossibleValues /\ UNCHANGED <<keys, map>>
-                \/ \exists k \in (PossibleKeys \ keys) : Find(k) = NULL /\ UNCHANGED <<keys, map>>
-
 
 (*******************************************************)
 (*TypeOK asserts all keys and values are of the right type*)

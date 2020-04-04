@@ -1,14 +1,19 @@
 \documentclass{uit-thesis}
 
 \usepackage{enumitem}
+\usepackage{/usr/local/texlive/2019/texmf-dist/tex/latex/tlatex/tlatex}
 \usepackage[backend=biber, sorting=none]{biblatex}
 \addbibresource{sources.bib}
 \graphicspath{{./figures/}}
 
 \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\N}{\mathbb{N}}
-\renewcommand{\implies}{\rightarrow}
+% \renewcommand{\implies}{\rightarrow}
 \newcommand{\eventually}{\rightsquigarrow}
+
+\usepackage{color}
+\definecolor{boxshade}{gray}{0.85}
+\setboolean{shading}{true}
 
 \begin{document}
 
@@ -251,8 +256,162 @@ Additionally we will check \textit{type safety}: at every point of execution, al
 
 \section{Hashmap for implementation}
 \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{hashmap.pdf}
+    \begin{tla}
+        ------------------------------ MODULE hashmap ------------------------------
+(*****************************************************************************)
+(*This module describes a hashmap to be used for testing with Shalev et al.'s*)
+(*split-ordered list implementation of the data structure                    *)
+(*****************************************************************************)
+
+EXTENDS Integers
+
+CONSTANTS NULL, PossibleKeys, PossibleValues
+
+VARIABLES keys, map
+
+
+(*******************************************************)
+(*Initial state has empty map and no keys              *)
+(*******************************************************)
+
+HashmapInit ==  /\ keys = {}
+                /\ map = [k \in PossibleKeys |-> NULL]
+
+(*******************************************************)
+(*Insert changes exactly one mapping of the hashmap    *)
+(*and adds one key to the set of keys                  *)
+(*******************************************************)
+Insert ==   \exists k \in PossibleKeys :
+                \exists v \in PossibleValues :
+                    /\ keys' = keys \union {k}
+                    /\ map' = [map EXCEPT ![k] = v]
+
+(*******************************************************)
+(*Remove sets exactly one mapping to NULL              *)
+(*******************************************************)
+Remove ==   \exists k \in PossibleKeys :
+                /\ keys' = keys \ {k}
+                /\ map' = [map EXCEPT ![k] = NULL]
+
+(*******************************************************)
+(*Find returns the value stored in the map with key k  *)
+(*******************************************************)
+Find(k) == map[k]
+
+(*******************************************************)
+(*Next is either an insert, a remove or a find         *)
+(*Find(k) returns NULL if not in map, otherwise a value*)
+(*******************************************************)          
+HashmapNext ==  \/ Insert
+                \/ Remove
+
+
+(*******************************************************)
+(*TypeOK asserts all keys and values are of the right type*)
+(*******************************************************) 
+TypeOK ==   \forall k \in keys :
+                /\ k \in PossibleKeys
+                /\ map[k] \in PossibleValues
+
+(*******************************************************)
+(*KeyHasValue asserts that every key is mapped to a value*)
+(*******************************************************) 
+KeyHasValue == \forall k \in keys : ~(map[k] = NULL)
+
+(*******************************************************)
+(*The hashmap specification as a temporal formula      *)
+(*******************************************************) 
+HashmapSpec == HashmapInit /\ [][HashmapNext]_<<keys, map>>
+=============================================================================
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8}}\moduleLeftDash\@xx{ {\MODULE} hashmap}\moduleRightDash\@xx{}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+This module describes a hashmap to be used for testing with Shalev et al.'s
+ split-ordered list implementation of the data structure                    
+\end{cpar}%
+\end{lcom}%
+\@pvspace{8.0pt}%
+\@x{ {\EXTENDS} Integers}%
+\@pvspace{8.0pt}%
+\@x{ {\CONSTANTS} NULL ,\, PossibleKeys ,\, PossibleValues}%
+\@pvspace{8.0pt}%
+\@x{ {\VARIABLES} keys ,\, map}%
+\@pvspace{16.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Initial state has empty map and no keys              
+\end{cpar}%
+\end{lcom}%
+\@pvspace{8.0pt}%
+\@x{ HashmapInit \.{\defeq}\@s{4.1} \.{\land} keys \.{=} \{ \}}%
+\@x{\@s{4.1} \.{\land} map \.{=} [ k \.{\in} PossibleKeys \.{\mapsto} NULL ]}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Insert changes exactly one mapping of the hashmap    
+ and adds one key to the set of keys                  
+\end{cpar}%
+\end{lcom}%
+\@x{ Insert \.{\defeq}\@s{8.2} \exists\, k \.{\in} PossibleKeys \.{:}}%
+\@x{\@s{24.59} \exists\, v \.{\in} PossibleValues \.{:}}%
+\@x{\@s{41.0} \.{\land} keys \.{'} \.{=} keys \.{\cup} \{ k \}}%
+ \@x{\@s{41.0} \.{\land} map \.{'} \.{=} [ map {\EXCEPT} {\bang} [ k ] \.{=} v
+ ]}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Remove sets exactly one mapping to NULL              
+\end{cpar}%
+\end{lcom}%
+\@x{ Remove \.{\defeq}\@s{8.2} \exists\, k \.{\in} PossibleKeys \.{:}}%
+\@x{\@s{24.59} \.{\land} keys \.{'} \.{=} keys \.{\,\backslash\,} \{ k \}}%
+ \@x{\@s{24.59} \.{\land} map \.{'} \.{=} [ map {\EXCEPT} {\bang} [ k ] \.{=}
+ NULL ]}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Find returns the value stored in the map with key k  
+\end{cpar}%
+\end{lcom}%
+\@x{ Find ( k ) \.{\defeq} map [ k ]}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Next is either an insert, a remove or a find         
+ Find(k) returns NULL if not in map, otherwise a value
+\end{cpar}%
+\end{lcom}%
+\@x{ HashmapNext \.{\defeq}\@s{4.1} \.{\lor} Insert}%
+\@x{\@s{4.1} \.{\lor} Remove}%
+\@pvspace{16.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+TypeOK asserts all keys and values are of the right type
+\end{cpar}%
+\end{lcom}%
+\@x{ TypeOK \.{\defeq}\@s{8.2} \forall\, k \.{\in} keys \.{:}}%
+\@x{\@s{24.59} \.{\land} k \.{\in} PossibleKeys}%
+\@x{\@s{24.59} \.{\land} map [ k ] \.{\in} PossibleValues}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+KeyHasValue asserts that every key is mapped to a value
+\end{cpar}%
+\end{lcom}%
+ \@x{ KeyHasValue \.{\defeq} \forall\, k \.{\in} keys \.{:} {\lnot} ( map [ k
+ ] \.{=} NULL )}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+The hashmap specification as a temporal formula      
+\end{cpar}%
+\end{lcom}%
+ \@x{ HashmapSpec \.{\defeq} HashmapInit \.{\land} {\Box} [ HashmapNext ]_{
+ {\langle} keys ,\, map {\rangle}}}%
+\@x{}\bottombar\@xx{}%
+\end{tlatex}
     \caption{The hashmap specification}
     \label{fig:hashmap-spec}
 \end{figure}
@@ -265,25 +424,706 @@ Remove removes one key from the set and changes its mapping to NULL. This is don
 The specification also contains temporal formulae that specify correct behavior. These have been checked with the TLC model checker [insert results here maybe?].
 \\\\
 Finally the entire hashmap is described by \textit{HashmapSpec}. This temporal formula states that the hashmap specification is fulfilled if the initial state fulfills \textit{HashmapInit} and each action fulfills \textit{HashmapNext}. This formula is used to prove a more complex specificaiton implements the semantics of Hashmap.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{SplitOrder.pdf}
-    \caption{Specificaiton of [insert name of structure]}
-    \label{fig:SplitOrder-spec}
-\end{figure}
-The specification of the split-order structure is shown in \autoref{fig:SplitOrder-spec} [probably split into smaller chunks when it's done].
 \\\\
 The theorem $SOSpec \Rightarrow HashmapSpec$ states that any program following the split-order specification also follows the hashmap specification. Hence, any program following the split-order specification is a correct implementation of a hashmap. It is tested by checking the property \textit{HashmapSpec} in a model checking SOSpec.
-\section{Split-ordered List}
-\section{Hashmap operations}
-\section{Putting it all together}
 
+\section{Split-ordered List}
+\begin{figure}
+    \begin{tla}
+        EXTENDS Integers
+
+        CONSTANTS NULL, PossibleKeys, PossibleValues, LoadFactor, MaxSize
+
+        VARIABLES keys, list, buckets, size, count
+
+        ASSUME
+            /\ PossibleKeys \subseteq 0..15
+            /\ NULL \notin PossibleKeys
+            /\ NULL \notin PossibleValues
+
+        SOInit == /\ keys    =  {}
+                  /\ list    =  [n \in 0..255 |-> IF n = 0 THEN 0 ELSE NULL]
+                  /\ buckets =  [m \in PossibleKeys |-> IF m = 0 THEN 0 ELSE NULL]
+                  /\ size    =  1
+                  /\ count   =  0
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8} {\EXTENDS} Integers}%
+\@pvspace{8.0pt}%
+ \@x{\@s{32.8} {\CONSTANTS} NULL ,\, PossibleKeys ,\, PossibleValues ,\,
+ LoadFactor ,\, MaxSize}%
+\@pvspace{8.0pt}%
+\@x{\@s{32.8} {\VARIABLES} keys ,\, list ,\, buckets ,\, size ,\, count}%
+\@pvspace{8.0pt}%
+\@x{\@s{32.8} {\ASSUME}}%
+\@x{\@s{49.19} \.{\land} PossibleKeys \.{\subseteq} 0 \.{\dotdot} 15}%
+\@x{\@s{49.19} \.{\land} NULL \.{\notin} PossibleKeys}%
+\@x{\@s{49.19} \.{\land} NULL \.{\notin} PossibleValues}%
+\@pvspace{8.0pt}%
+\@x{\@s{32.8} SOInit \.{\defeq} \.{\land} keys\@s{12.29} \.{=}\@s{4.1} \{ \}}%
+ \@x{\@s{32.8} \.{\land} list\@s{12.29} \.{=}\@s{4.09} [ n \.{\in} 0
+ \.{\dotdot} 255 \.{\mapsto} {\IF} n \.{=} 0 \.{\THEN} 0 \.{\ELSE} NULL ]}%
+ \@x{\@s{32.8} \.{\land} buckets\@s{12.29} \.{=}\@s{4.1} [ m \.{\in}
+ PossibleKeys \.{\mapsto} {\IF} m \.{=} 0 \.{\THEN} 0 \.{\ELSE} NULL ]}%
+\@x{\@s{32.8} \.{\land} size\@s{12.29} \.{=}\@s{4.1} 1}%
+\@x{\@s{32.8} \.{\land} count\@s{12.29} \.{=}\@s{4.1} 0}%
+\end{tlatex}
+    \caption{Initial state of the split-order map}
+    \label{fig:split-order-init}
+\end{figure}
+
+\begin{figure}
+    \begin{tla}
+        ListInsert(k, v) == IF list[k] = NULL
+                        THEN list' = [list EXCEPT ![k] = v] /\ count' = count + 1
+                        ELSE UNCHANGED <<list, count>>
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8} ListInsert ( k ,\, v ) \.{\defeq} {\IF} list [ k ] \.{=} NULL}%
+ \@x{\@s{36.89} \.{\THEN} list \.{'} \.{=} [ list {\EXCEPT} {\bang} [ k ]
+ \.{=} v ] \.{\land} count \.{'} \.{=} count \.{+} 1}%
+\@x{\@s{36.89} \.{\ELSE} {\UNCHANGED} {\langle} list ,\, count {\rangle}}%
+\end{tlatex}
+    \caption{Insertion into "list"}
+    \label{fig:list-insert}
+\end{figure}
+
+The split-order specification consists of three main parts. The necessary data structures (list, buckets), operations on the map, and an abstract specification tying them together. This section provides examples and explains the structure of each. The full specification can be found in \autoref{appendix:specification}.
+\\\\
+\autoref{fig:split-order-init} shows the beginning of the specification. The sets of possible keys and values, as well as the maximum size and load factor of the map are parameters of the model. The variables for a list and buckets are set up, as well as the set of keys, and variables storing the number of entries and current number of buckets.\\
+Their initial values are set such that there is one bucket pointing to the dummy node with 0 as its key and the set of real keys is empty.
+\\\\
+\begin{figure}
+    \begin{tla}
+        BucketInsert(k, v) ==
+                    (*Either a bucket needs to be initialized*)
+                    \/  /\ buckets[k % size] = NULL
+                        /\ BucketInit(k % size)
+                        /\ ListInsert(SORegularKey(k), v)
+                        /\ keys' = keys \union {k}                      
+                      (*Or the bucket is already initialized*)
+                    \/  /\ buckets[k % size] /= NULL
+                        /\ ListInsert(SORegularKey(k), v)
+                        /\ keys' = keys \union {k}
+                        /\ UNCHANGED <<buckets>>
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8} BucketInsert ( k ,\, v ) \.{\defeq}}%
+\@x{\@s{32.8}}%
+\@y{%
+ Either a bucket needs to be initialized
+}%
+\@xx{}%
+ \@x{\@s{32.8} \.{\lor}\@s{4.1} \.{\land} buckets [ k \.{\%} size ] \.{=}
+ NULL}%
+\@x{\@s{36.89} \.{\land} BucketInit ( k \.{\%} size )}%
+\@x{\@s{36.89} \.{\land} ListInsert ( SORegularKey ( k ) ,\, v )}%
+\@x{\@s{36.89} \.{\land} keys \.{'} \.{=} keys \.{\cup} \{ k \}}%
+\@x{\@s{41.0}}%
+\@y{%
+ Or the bucket is already initialized
+}%
+\@xx{}%
+ \@x{\@s{32.8} \.{\lor}\@s{4.1} \.{\land} buckets [ k \.{\%} size ] \.{\neq}
+ NULL}%
+\@x{\@s{36.89} \.{\land} ListInsert ( SORegularKey ( k ) ,\, v )}%
+\@x{\@s{36.89} \.{\land} keys \.{'} \.{=} keys \.{\cup} \{ k \}}%
+\@x{\@s{36.89} \.{\land} {\UNCHANGED} {\langle} buckets {\rangle}}%
+\end{tlatex}
+\caption{Inserting a key, value pair into the map}
+\label{fig:bucket-insert}
+\end{figure}
+
+\begin{figure}
+    \begin{tla}
+        RECURSIVE BucketInit(_)
+        BucketInit(b) == IF buckets[Parent(b)] = NULL /\ Parent(b) /= 0
+                            THEN BucketInit(Parent(b))
+                            ELSE buckets' = [buckets EXCEPT ![b] = SODummyKey(b)]
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8} {\RECURSIVE} BucketInit ( \_ )}%
+ \@x{\@s{32.8} BucketInit ( b ) \.{\defeq} {\IF} buckets [ Parent ( b ) ]
+ \.{=} NULL \.{\land} Parent ( b ) \.{\neq} 0}%
+\@x{\@s{32.8} \.{\THEN} BucketInit ( Parent ( b ) )}%
+ \@x{\@s{32.8} \.{\ELSE} buckets \.{'} \.{=} [ buckets {\EXCEPT} {\bang} [ b ]
+ \.{=} SODummyKey ( b ) ]}%
+\end{tlatex}
+    \caption{Initializing a bucket}
+    \label{fig:bucket-init}
+\end{figure}
+
+The most involved operation is map insertion. This is done in the \textit{BucketInsert} action shown in \autoref{fig:bucket-insert}. \textit{BucketInserts} specifies the disjunction of having to initialize a bucket or inserting without changing buckets. In either case, a key is added to the set of keys and a node is inserted in the list.\\
+\textit{BucketInit}, shown in \autoref{fig:bucket-init} is a recursive function initializing a pucket and any of its unitialized parent buckets. The parent of a bucket is a dummy node defined such that it comes before the bucket both in the regular order and the split-order of keys.\\
+Inserting into a list is done by \textit{ListInsert} which inserts a node if there is not already one with the same key and otherwise does nothing. The list is represented as a mapping from split-order keys to values, preserving the order of nodes.
+
+\begin{figure}
+    \begin{tla}
+        (*Lookup table for bit-reversed keys with MSB set*)
+        SORegularKey(k) ==  CASE k = 0 -> 1
+                            [] k = 1 -> 9
+                            [] k = 2 -> 5
+                            [] k = 3 -> 13
+                            [] k = 4 -> 3
+                            [] k = 5 -> 11
+                            [] k = 6 -> 7
+                            [] k = 7 -> 15
+                            [] k = 8 -> 1
+                            [] k = 9 -> 9
+                            [] k = 10 -> 5
+                            [] k = 11 -> 13
+                            [] k = 12 -> 3
+                            [] k = 13 -> 11
+                            [] k = 14 -> 7
+                            [] k = 15 -> 15
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8}}%
+\@y{%
+ Lookup table for bit-reversed keys with MSB set
+}%
+\@xx{}%
+ \@x{\@s{32.8} SORegularKey ( k ) \.{\defeq}\@s{4.1} {\CASE} k \.{=} 0
+ \.{\rightarrow} 1}%
+\@x{\@s{36.89} {\Box} k \.{=} 1 \.{\rightarrow} 9}%
+\@x{\@s{36.89} {\Box} k \.{=} 2 \.{\rightarrow} 5}%
+\@x{\@s{36.89} {\Box} k \.{=} 3 \.{\rightarrow} 13}%
+\@x{\@s{36.89} {\Box} k \.{=} 4 \.{\rightarrow} 3}%
+\@x{\@s{36.89} {\Box} k \.{=} 5 \.{\rightarrow} 11}%
+\@x{\@s{36.89} {\Box} k \.{=} 6 \.{\rightarrow} 7}%
+\@x{\@s{36.89} {\Box} k \.{=} 7 \.{\rightarrow} 15}%
+\@x{\@s{36.89} {\Box} k \.{=} 8 \.{\rightarrow} 1}%
+\@x{\@s{36.89} {\Box} k \.{=} 9 \.{\rightarrow} 9}%
+\@x{\@s{36.89} {\Box} k \.{=} 10 \.{\rightarrow} 5}%
+\@x{\@s{36.89} {\Box} k \.{=} 11 \.{\rightarrow} 13}%
+\@x{\@s{36.89} {\Box} k \.{=} 12 \.{\rightarrow} 3}%
+\@x{\@s{36.89} {\Box} k \.{=} 13 \.{\rightarrow} 11}%
+\@x{\@s{36.89} {\Box} k \.{=} 14 \.{\rightarrow} 7}%
+\@x{\@s{36.89} {\Box} k \.{=} 15 \.{\rightarrow} 15}%
+\end{tlatex}
+    \caption{The regular key lookup table}
+    \label{fig:key-lookup}
+\end{figure}
+
+Keys and parent nodes are computed by Shalev et al. through bit operations and reversal. Such low-level operations are not available to us, so both are done with lookup tables. The lookup table for regular split-order keys is shown in \autoref{fig:key-lookup}.
+
+\begin{figure}
+    \begin{tla}
+        SOInsert == /\  \E k \in PossibleKeys :
+                    \E v \in PossibleValues :
+                        BucketInsert(k, v)
+            /\ UNCHANGED size
+
+SORemove == /\  \E k \in PossibleKeys :
+                    BucketRemove(k)
+            /\ UNCHANGED size
+
+SONext ==   \/ SOInsert
+            \/ SORemove
+            \/ BucketGrow
+
+SOSpec == SOInit /\ [][SONext]_<<keys, list, buckets, size, count>>
+
+\end{tla}
+\begin{tlatex}
+ \@x{\@s{32.8} SOInsert \.{\defeq} \.{\land}\@s{4.1} \E\, k \.{\in}
+ PossibleKeys \.{:}}%
+\@x{\@s{32.8} \E\, v \.{\in} PossibleValues \.{:}}%
+\@x{\@s{36.89} BucketInsert ( k ,\, v )}%
+\@x{\@s{49.19} \.{\land} {\UNCHANGED} size}%
+\@pvspace{8.0pt}%
+ \@x{ SORemove \.{\defeq}\@s{49.19} \.{\land}\@s{4.1} \E\, k \.{\in}
+ PossibleKeys \.{:}}%
+\@x{\@s{57.39} BucketRemove ( k )}%
+\@x{\@s{49.19} \.{\land} {\UNCHANGED} size}%
+\@pvspace{8.0pt}%
+\@x{ SONext \.{\defeq}\@s{8.2} \.{\lor} SOInsert}%
+\@x{\@s{8.2} \.{\lor} SORemove}%
+\@x{\@s{8.2} \.{\lor} BucketGrow}%
+\@pvspace{8.0pt}%
+ \@x{ SOSpec \.{\defeq} SOInit \.{\land} {\Box} [ SONext ]_{ {\langle} keys
+ ,\, list ,\, buckets ,\, size ,\, count {\rangle}}}%
+\@pvspace{8.0pt}%
+\end{tlatex}
+\caption{The highest-level specification of split-order map}
+\label{fig:SO-spec}
+\end{figure}
+
+Finally, the high-order functioning of the map is specified through \textit{SONext}. \textit{SONext} specifices that in each step either a key-value pair is inserted, a key is removed, or the bucket array grows in size. \textit{SOSpec} then defines the total behaviour of the map to be a sequence of states that initially satisfies \textit{SOInit} and satisfies \textit{SONext} in all steps.
+
+\begin{figure}
+    \begin{tla}
+        (*********)
+(*A refinement mapping of the hashmap spec with the map defined by the SOFind action*)
+(***********)
+INSTANCE hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
+(********************************)
+(*Split-order implements hashmap*)
+(********************************)
+THEOREM SOSpec => HashmapSpec
+    \end{tla}
+\begin{tlatex}
+\@x{}%
+\@y{%
+ A refinement mapping of the hashmap spec with the map defined by the SOFind
+ action
+}%
+\@xx{}%
+ \@x{ {\INSTANCE} hashmap {\WITH} map \.{\leftarrow} [ k \.{\in} PossibleKeys
+ \.{\mapsto} SOFind ( k ) ]}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Split-order implements hashmap
+\end{cpar}%
+\end{lcom}%
+\@x{ {\THEOREM} SOSpec \.{\implies} HashmapSpec}%
+\end{tlatex}
+\caption{Implementation of hashmap by split-order map}
+\label{fig:implementation}
+\end{figure}
+
+In order to show the implementation of hashmap by SplitOrder, a refinement mapping is defined. This is a way to describe the behavior of SplitOrder in terms of the variables of hashmap. The mapping replaces the variable \textit{map} in hashmap with the \textit{SOFind} operation defined in SplitOrder. It is necessary to perform such a replacement because SplitOrder does not define a simple map from keys to values, but rather uses the structure of buckets and list nodes to find the correct node. The refinement mapping ans subsequent implementation theorem can be seen in \autoref{fig:implementation}.
 \chapter{Results}\label{ch:results}
 \section{Discussion}\label{sec:discussion}
 
 \backmatter
-
 \printbibliography{}
+\appendix
+\addcontentsline{toc}{chapter}{Appendix}
+% \addtocontents{toc}{\protect\contentsline{chapter}{Appendix:}{}}
+\chapter{Split-order Specification}\label{appendix:specification}
+    \begin{tla}
+        --------------------------------- MODULE SplitOrder ---------------------------------
+        (*************************************************************************************)
+        (*This module implements a hashmap using Shalev et al.'s split-ordered list structure*)
+        (*************************************************************************************)
+        
+        EXTENDS Integers
+        
+        CONSTANTS NULL, PossibleKeys, PossibleValues, LoadFactor, MaxSize
+        
+        VARIABLES keys, list, buckets, size, count
+        
+        ASSUME
+        /\ PossibleKeys \subseteq 0..15
+        /\ NULL \notin PossibleKeys
+        /\ NULL \notin PossibleValues
+        
+        (****************************************************)
+        (*The Init for split-order                          *)
+        (*keys is initially empty                           *)
+        (*the map maps every possible key to NULL           *)
+        (*The list initially contains only the 0 dummy node *)
+        (****************************************************)
+SOInit ==   /\ keys = {}
+/\ list = [n \in 0..255 |-> IF n = 0 THEN 0 ELSE NULL]
+/\ buckets = [m \in PossibleKeys |-> IF m = 0 THEN 0 ELSE NULL]
+/\ size = 1
+/\ count = 0
 
+(*Lookup table for bit-reversed keys with MSB set*)
+SORegularKey(k) ==  CASE k = 0 -> 1
+[] k = 1 -> 9
+[] k = 2 -> 5
+[] k = 3 -> 13
+[] k = 4 -> 3
+[] k = 5 -> 11
+[] k = 6 -> 7
+[] k = 7 -> 15
+[] k = 8 -> 1
+[] k = 9 -> 9
+[] k = 10 -> 5
+[] k = 11 -> 13
+[] k = 12 -> 3
+[] k = 13 -> 11
+[] k = 14 -> 7
+[] k = 15 -> 15
+
+(*Lookup table for bit-reversed keys*)
+SODummyKey(k) ==    CASE k = 0 -> 0
+[] k = 1 -> 8
+[] k = 2 -> 4
+[] k = 3 -> 12
+[] k = 4 -> 2
+[] k = 5 -> 10
+[] k = 6 -> 6
+[] k = 7 -> 14
+[] k = 8 -> 1
+[] k = 9 -> 9
+[] k = 10 -> 5
+[] k = 11 -> 13
+[] k = 12 -> 3
+[] k = 13 -> 11
+[] k = 14 -> 7
+                     [] k = 15 -> 15
+                     
+                     (*Lookup table for parent buckets*)
+                     Parent(b) ==    CASE b = 0 -> 0
+                     [] b = 1 -> 0
+                     [] b = 2 -> 0
+                     [] b = 3 -> 1
+                     [] b = 4 -> 0
+                     [] b = 5 -> 1
+                     [] b = 6 -> 2
+                     [] b = 7 -> 3
+                     [] b = 8 -> 0
+                     [] b = 9 -> 1
+                     [] b = 10 -> 2
+                     [] b = 11 -> 3
+                     [] b = 12 -> 8
+                     [] b = 13 -> 5
+                     [] b = 14 -> 6
+                     [] b = 15 -> 7
+                     
+                     
+                     (**********************************)
+                     (*Inserting into the "linked list"*)
+                     (**********************************)
+                     ListInsert(k, v) == IF list[k] = NULL
+                     THEN list' = [list EXCEPT ![k] = v] /\ count' = count + 1
+                     ELSE UNCHANGED <<list, count>>
+                     
+                     (*********************************)
+                     (*Removing from the "linked list"*)
+                     (*********************************)
+                     ListRemove(k) == IF list[k] = NULL
+                     THEN UNCHANGED <<list, count>>
+                     ELSE list' = [list EXCEPT ![k] = NULL] /\ count' = count - 1
+                     
+                     (*********************************)
+                     (*Recursively initializes buckets*)
+                     (*********************************)
+                     RECURSIVE BucketInit(_)
+                     BucketInit(b) == IF buckets[Parent(b)] = NULL /\ Parent(b) /= 0
+                     THEN BucketInit(Parent(b))
+                     ELSE buckets' = [buckets EXCEPT ![b] = SODummyKey(b)]
+                     
+                     (********************************************************)
+                     (*Find the value of the key k in the bucket b           *)
+                     (*Results in the value if b is initialized and k is in b*)
+                     (********************************************************)
+                     ListFind(b, k) == IF k > b /\ list[b] /= NULL THEN list[k] ELSE NULL
+                     
+                     (*SOFind finds a key in the map*)
+                     SOFind(k) == IF buckets[k % size] = NULL
+                     THEN NULL \* should initialize bucket, but also needs a "return value"
+                     ELSE ListFind(buckets[k % size], k)
+                     
+                     Min(a, b) == IF a > b THEN b ELSE a
+                     BucketGrow == IF count /= 0 /\ size \div count > LoadFactor
+                     THEN size' = Min(size * 2, MaxSize) /\ UNCHANGED <<keys, list, buckets, count>> 
+                     ELSE UNCHANGED <<keys, list, buckets, count, size>>
+                     
+                     (****************************)
+                     (*Inserting into the buckets*)
+                     (****************************)
+                     BucketInsert(k, v) == (*Either a bucket needs to be initialized*)
+                     \/  /\ buckets[k % size] = NULL
+                     /\ BucketInit(k % size)
+                     /\ ListInsert(SORegularKey(k), v)
+                     /\ keys' = keys \union {k}                      
+                     (*Or the bucket is already initialized*)
+                     \/  /\ buckets[k % size] /= NULL
+                     /\ ListInsert(SORegularKey(k), v)
+                     /\ keys' = keys \union {k}
+                     /\ UNCHANGED <<buckets>>
+                     
+                     (***************************)
+                     (*Removing from the buckets*)
+                     (***************************)                
+                     BucketRemove(k) == /\ ListRemove(SORegularKey(k))
+                     /\ keys' = keys \ {k}
+                     /\ UNCHANGED <<buckets>>
+                     
+                     
+                     SOInsert == /\  \E k \in PossibleKeys :
+                     \E v \in PossibleValues :
+                     BucketInsert(k, v)
+                     /\ UNCHANGED size
+                     
+                     SORemove == /\  \E k \in PossibleKeys :
+                     BucketRemove(k)
+                     /\ UNCHANGED size
+                     
+                     
+                     (**************************)
+                     (*The Next for split order*)
+                     (**************************)
+                     SONext ==   \/ SOInsert
+                     \/ SORemove
+                     \/ BucketGrow
+                     
+                     (**************************)
+                     (*Split-order spec        *)
+                     (**************************)
+                     SOSpec == SOInit /\ [][SONext]_<<keys, list, buckets, size, count>>
+                     
+                     
+                     (*If I can get map to work as intended...*)
+                     (*refinement mapping??*)
+                     INSTANCE  hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
+                     (********************************)
+                     (*Split-order implements hashmap*)
+                     (********************************)
+                     THEOREM SOSpec => HashmapSpec
+                     
+                     ======================================================================================
+    \end{tla}
+\begin{tlatex}
+ \@x{\@s{32.8}}\moduleLeftDash\@xx{ {\MODULE}
+ SplitOrder}\moduleRightDash\@xx{}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ This module implements a hashmap using Shalev et al.'s split-ordered list
+ structure
+\end{cpar}%
+\end{lcom}%
+\@pvspace{8.0pt}%
+\@x{\@s{32.8} {\EXTENDS} Integers}%
+\@pvspace{8.0pt}%
+ \@x{\@s{32.8} {\CONSTANTS} NULL ,\, PossibleKeys ,\, PossibleValues ,\,
+ LoadFactor ,\, MaxSize}%
+\@pvspace{8.0pt}%
+\@x{\@s{32.8} {\VARIABLES} keys ,\, list ,\, buckets ,\, size ,\, count}%
+\@pvspace{8.0pt}%
+\@x{\@s{32.8} {\ASSUME}}%
+\@x{\@s{32.8} \.{\land} PossibleKeys \.{\subseteq} 0 \.{\dotdot} 15}%
+\@x{\@s{32.8} \.{\land} NULL \.{\notin} PossibleKeys}%
+\@x{\@s{32.8} \.{\land} NULL \.{\notin} PossibleValues}%
+\@pvspace{8.0pt}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+The Init for split-order                          
+ keys is initially empty                           
+ the map maps every possible key to NULL           
+ The list initially contains only the 0 dummy node 
+\end{cpar}%
+\end{lcom}%
+\@x{ SOInit \.{\defeq}\@s{8.2} \.{\land} keys \.{=} \{ \}}%
+ \@x{ \.{\land} list \.{=} [ n \.{\in} 0 \.{\dotdot} 255 \.{\mapsto} {\IF} n
+ \.{=} 0 \.{\THEN} 0 \.{\ELSE} NULL ]}%
+ \@x{ \.{\land} buckets \.{=} [ m \.{\in} PossibleKeys \.{\mapsto} {\IF} m
+ \.{=} 0 \.{\THEN} 0 \.{\ELSE} NULL ]}%
+\@x{ \.{\land} size \.{=} 1}%
+\@x{ \.{\land} count \.{=} 0}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{%
+ Lookup table for bit-reversed keys with MSB set
+}%
+\@xx{}%
+ \@x{ SORegularKey ( k ) \.{\defeq}\@s{4.1} {\CASE} k \.{=} 0 \.{\rightarrow}
+ 1}%
+\@x{ {\Box} k \.{=} 1 \.{\rightarrow} 9}%
+\@x{ {\Box} k \.{=} 2 \.{\rightarrow} 5}%
+\@x{ {\Box} k \.{=} 3 \.{\rightarrow} 13}%
+\@x{ {\Box} k \.{=} 4 \.{\rightarrow} 3}%
+\@x{ {\Box} k \.{=} 5 \.{\rightarrow} 11}%
+\@x{ {\Box} k \.{=} 6 \.{\rightarrow} 7}%
+\@x{ {\Box} k \.{=} 7 \.{\rightarrow} 15}%
+\@x{ {\Box} k \.{=} 8 \.{\rightarrow} 1}%
+\@x{ {\Box} k \.{=} 9 \.{\rightarrow} 9}%
+\@x{ {\Box} k \.{=} 10 \.{\rightarrow} 5}%
+\@x{ {\Box} k \.{=} 11 \.{\rightarrow} 13}%
+\@x{ {\Box} k \.{=} 12 \.{\rightarrow} 3}%
+\@x{ {\Box} k \.{=} 13 \.{\rightarrow} 11}%
+\@x{ {\Box} k \.{=} 14 \.{\rightarrow} 7}%
+\@x{ {\Box} k \.{=} 15 \.{\rightarrow} 15}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{%
+ Lookup table for bit-reversed keys
+}%
+\@xx{}%
+ \@x{ SODummyKey ( k ) \.{\defeq}\@s{12.29} {\CASE} k \.{=} 0 \.{\rightarrow}
+ 0}%
+\@x{ {\Box} k \.{=} 1 \.{\rightarrow} 8}%
+\@x{ {\Box} k \.{=} 2 \.{\rightarrow} 4}%
+\@x{ {\Box} k \.{=} 3 \.{\rightarrow} 12}%
+\@x{ {\Box} k \.{=} 4 \.{\rightarrow} 2}%
+\@x{ {\Box} k \.{=} 5 \.{\rightarrow} 10}%
+\@x{ {\Box} k \.{=} 6 \.{\rightarrow} 6}%
+\@x{ {\Box} k \.{=} 7 \.{\rightarrow} 14}%
+\@x{ {\Box} k \.{=} 8 \.{\rightarrow} 1}%
+\@x{ {\Box} k \.{=} 9 \.{\rightarrow} 9}%
+\@x{ {\Box} k \.{=} 10 \.{\rightarrow} 5}%
+\@x{ {\Box} k \.{=} 11 \.{\rightarrow} 13}%
+\@x{ {\Box} k \.{=} 12 \.{\rightarrow} 3}%
+\@x{ {\Box} k \.{=} 13 \.{\rightarrow} 11}%
+\@x{ {\Box} k \.{=} 14 \.{\rightarrow} 7}%
+\@x{\@s{32.8} {\Box} k \.{=} 15 \.{\rightarrow} 15}%
+\@pvspace{8.0pt}%
+\@x{\@s{32.8}}%
+\@y{%
+ Lookup table for parent buckets
+}%
+\@xx{}%
+ \@x{\@s{32.8} Parent ( b ) \.{\defeq}\@s{12.29} {\CASE} b \.{=} 0
+ \.{\rightarrow} 0}%
+\@x{\@s{32.8} {\Box} b \.{=} 1 \.{\rightarrow} 0}%
+\@x{\@s{32.8} {\Box} b \.{=} 2 \.{\rightarrow} 0}%
+\@x{\@s{32.8} {\Box} b \.{=} 3 \.{\rightarrow} 1}%
+\@x{\@s{32.8} {\Box} b \.{=} 4 \.{\rightarrow} 0}%
+\@x{\@s{32.8} {\Box} b \.{=} 5 \.{\rightarrow} 1}%
+\@x{\@s{32.8} {\Box} b \.{=} 6 \.{\rightarrow} 2}%
+\@x{\@s{32.8} {\Box} b \.{=} 7 \.{\rightarrow} 3}%
+\@x{\@s{32.8} {\Box} b \.{=} 8 \.{\rightarrow} 0}%
+\@x{\@s{32.8} {\Box} b \.{=} 9 \.{\rightarrow} 1}%
+\@x{\@s{32.8} {\Box} b \.{=} 10 \.{\rightarrow} 2}%
+\@x{\@s{32.8} {\Box} b \.{=} 11 \.{\rightarrow} 3}%
+\@x{\@s{32.8} {\Box} b \.{=} 12 \.{\rightarrow} 8}%
+\@x{\@s{32.8} {\Box} b \.{=} 13 \.{\rightarrow} 5}%
+\@x{\@s{32.8} {\Box} b \.{=} 14 \.{\rightarrow} 6}%
+\@x{\@s{32.8} {\Box} b \.{=} 15 \.{\rightarrow} 7}%
+\@pvspace{16.0pt}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Inserting into the "linked list"
+\end{cpar}%
+\end{lcom}%
+\@x{\@s{32.8} ListInsert ( k ,\, v ) \.{\defeq} {\IF} list [ k ] \.{=} NULL}%
+ \@x{\@s{32.8} \.{\THEN} list \.{'} \.{=} [ list {\EXCEPT} {\bang} [ k ] \.{=}
+ v ] \.{\land} count \.{'} \.{=} count \.{+} 1}%
+\@x{\@s{32.8} \.{\ELSE} {\UNCHANGED} {\langle} list ,\, count {\rangle}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Removing from the "linked list"
+\end{cpar}%
+\end{lcom}%
+\@x{\@s{32.8} ListRemove ( k ) \.{\defeq} {\IF} list [ k ] \.{=} NULL}%
+\@x{\@s{32.8} \.{\THEN} {\UNCHANGED} {\langle} list ,\, count {\rangle}}%
+ \@x{\@s{32.8} \.{\ELSE} list \.{'} \.{=} [ list {\EXCEPT} {\bang} [ k ] \.{=}
+ NULL ] \.{\land} count \.{'} \.{=} count \.{-} 1}%
+\@pvspace{8.0pt}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Recursively initializes buckets
+\end{cpar}%
+\end{lcom}%
+\@x{\@s{32.8} {\RECURSIVE} BucketInit ( \_ )}%
+ \@x{\@s{32.8} BucketInit ( b ) \.{\defeq} {\IF} buckets [ Parent ( b ) ]
+ \.{=} NULL \.{\land} Parent ( b ) \.{\neq} 0}%
+\@x{\@s{32.8} \.{\THEN} BucketInit ( Parent ( b ) )}%
+ \@x{\@s{32.8} \.{\ELSE} buckets \.{'} \.{=} [ buckets {\EXCEPT} {\bang} [ b ]
+ \.{=} SODummyKey ( b ) ]}%
+\@pvspace{8.0pt}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Find the value of the key k in the bucket b           
+ Results in the value if b is initialized and k is in b
+\end{cpar}%
+\end{lcom}%
+ \@x{\@s{32.8} ListFind ( b ,\, k ) \.{\defeq} {\IF} k \.{>} b \.{\land} list
+ [ b ] \.{\neq} NULL \.{\THEN} list [ k ] \.{\ELSE} NULL}%
+\@pvspace{8.0pt}%
+\@x{\@s{32.8}}%
+\@y{%
+ SOFind finds a key in the map
+}%
+\@xx{}%
+ \@x{\@s{32.8} SOFind ( k ) \.{\defeq} {\IF} buckets [ k \.{\%} size ] \.{=}
+ NULL}%
+\@x{\@s{32.8} \.{\THEN} NULL}%
+\@y{%
+  should initialize bucket, but also needs a "return value"
+}%
+\@xx{}%
+\@x{\@s{32.8} \.{\ELSE} ListFind ( buckets [ k \.{\%} size ] ,\, k )}%
+\@pvspace{8.0pt}%
+ \@x{\@s{32.8} Min ( a ,\, b ) \.{\defeq} {\IF} a \.{>} b \.{\THEN} b
+ \.{\ELSE} a}%
+ \@x{\@s{32.8} BucketGrow \.{\defeq} {\IF} count \.{\neq} 0 \.{\land} size
+ \.{\div} count \.{>} LoadFactor}%
+ \@x{\@s{32.8} \.{\THEN} size \.{'} \.{=} Min ( size \.{*} 2 ,\, MaxSize )
+ \.{\land} {\UNCHANGED} {\langle} keys ,\, list ,\, buckets ,\, count
+ {\rangle}}%
+ \@x{\@s{32.8} \.{\ELSE} {\UNCHANGED} {\langle} keys ,\, list ,\, buckets ,\,
+ count ,\, size {\rangle}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Inserting into the buckets
+\end{cpar}%
+\end{lcom}%
+\@x{\@s{32.8} BucketInsert ( k ,\, v ) \.{\defeq}}%
+\@y{%
+ Either a bucket needs to be initialized
+}%
+\@xx{}%
+ \@x{\@s{32.8} \.{\lor}\@s{4.1} \.{\land} buckets [ k \.{\%} size ] \.{=}
+ NULL}%
+\@x{\@s{32.8} \.{\land} BucketInit ( k \.{\%} size )}%
+\@x{\@s{32.8} \.{\land} ListInsert ( SORegularKey ( k ) ,\, v )}%
+\@x{\@s{32.8} \.{\land} keys \.{'} \.{=} keys \.{\cup} \{ k \}}%
+\@x{\@s{32.8}}%
+\@y{%
+ Or the bucket is already initialized
+}%
+\@xx{}%
+ \@x{\@s{32.8} \.{\lor}\@s{4.1} \.{\land} buckets [ k \.{\%} size ] \.{\neq}
+ NULL}%
+\@x{\@s{32.8} \.{\land} ListInsert ( SORegularKey ( k ) ,\, v )}%
+\@x{\@s{32.8} \.{\land} keys \.{'} \.{=} keys \.{\cup} \{ k \}}%
+\@x{\@s{32.8} \.{\land} {\UNCHANGED} {\langle} buckets {\rangle}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Removing from the buckets
+\end{cpar}%
+\end{lcom}%
+ \@x{\@s{32.8} BucketRemove ( k ) \.{\defeq} \.{\land} ListRemove (
+ SORegularKey ( k ) )}%
+\@x{\@s{32.8} \.{\land} keys \.{'} \.{=} keys \.{\,\backslash\,} \{ k \}}%
+\@x{\@s{32.8} \.{\land} {\UNCHANGED} {\langle} buckets {\rangle}}%
+\@pvspace{16.0pt}%
+ \@x{\@s{32.8} SOInsert \.{\defeq} \.{\land}\@s{4.1} \E\, k \.{\in}
+ PossibleKeys \.{:}}%
+\@x{\@s{32.8} \E\, v \.{\in} PossibleValues \.{:}}%
+\@x{\@s{32.8} BucketInsert ( k ,\, v )}%
+\@x{\@s{32.8} \.{\land} {\UNCHANGED} size}%
+\@pvspace{8.0pt}%
+ \@x{\@s{32.8} SORemove \.{\defeq} \.{\land}\@s{4.1} \E\, k \.{\in}
+ PossibleKeys \.{:}}%
+\@x{\@s{32.8} BucketRemove ( k )}%
+\@x{\@s{32.8} \.{\land} {\UNCHANGED} size}%
+\@pvspace{16.0pt}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+The Next for split order
+\end{cpar}%
+\end{lcom}%
+\@x{\@s{32.8} SONext \.{\defeq}\@s{8.2} \.{\lor} SOInsert}%
+\@x{\@s{32.8} \.{\lor} SORemove}%
+\@x{\@s{32.8} \.{\lor} BucketGrow}%
+\@pvspace{8.0pt}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Split-order spec        
+\end{cpar}%
+\end{lcom}%
+ \@x{\@s{32.8} SOSpec \.{\defeq} SOInit \.{\land} {\Box} [ SONext ]_{
+ {\langle} keys ,\, list ,\, buckets ,\, size ,\, count {\rangle}}}%
+\@pvspace{16.0pt}%
+\@x{\@s{32.8}}%
+\@y{%
+ If I can get map to work as intended...
+}%
+\@xx{}%
+\@x{\@s{32.8}}%
+\@y{%
+ refinement mapping??
+}%
+\@xx{}%
+ \@x{\@s{32.8} {\INSTANCE}\@s{4.1} hashmap {\WITH} map \.{\leftarrow} [ k
+ \.{\in} PossibleKeys \.{\mapsto} SOFind ( k ) ]}%
+\begin{lcom}{32.8}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Split-order implements hashmap
+\end{cpar}%
+\end{lcom}%
+\@x{\@s{32.8} {\THEOREM} SOSpec \.{\implies} HashmapSpec}%
+\@pvspace{8.0pt}%
+\@x{\@s{32.8}}\bottombar\@xx{}%
+\end{tlatex}
 \end{document}

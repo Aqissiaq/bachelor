@@ -14,17 +14,6 @@ ASSUME
     /\ NULL \notin PossibleKeys
     /\ NULL \notin PossibleValues
 
-(****************************************************)
-(*The Init for split-order                          *)
-(*keys is initially empty                           *)
-(*the map maps every possible key to NULL           *)
-(*The list initially contains only the 0 dummy node *)
-(****************************************************)
-SOInit ==   /\ keys = {}
-            /\ list = [n \in 0..255 |-> IF n = 0 THEN 0 ELSE NULL]
-            /\ buckets = [m \in PossibleKeys |-> IF m = 0 THEN 0 ELSE NULL]
-            /\ size = 1
-            /\ count = 0
 
 (*Lookup table for bit-reversed keys with MSB set*)
 SORegularKey(k) ==  CASE k = 0 -> 1
@@ -80,6 +69,17 @@ Parent(b) ==    CASE b = 0 -> 0
                      [] b = 14 -> 6
                      [] b = 15 -> 7
 
+(****************************************************)
+(*The Init for split-order                          *)
+(*keys is initially empty                           *)
+(*the map maps every possible key to NULL           *)
+(*The list initially contains only the 0 dummy node *)
+(****************************************************)
+SOInit ==   /\ keys = {}
+            /\ list = [n \in 0..255 |-> IF n = 0 THEN SODummyKey(0) ELSE NULL]
+            /\ buckets = [m \in PossibleKeys |-> IF m = 0 THEN SODummyKey(0) ELSE NULL]
+            /\ size = 1
+            /\ count = 0
 
 (**********************************)
 (*Inserting into the "linked list"*)
@@ -156,8 +156,6 @@ SORemove == /\  \E k \in PossibleKeys :
 (**************************)
 SONext ==   \/ SOInsert
             \/ SORemove
-            \* \/ \E k \in keys : SOFind(k) \in PossibleValues /\ UNCHANGED <<keys, list, buckets, size, count>>
-            \* \/ \E k \in (PossibleKeys \ keys) : SOFind(k) = NULL /\ UNCHANGED <<keys, list, buckets, size, count>>
             \/ BucketGrow
 
 (**************************)
@@ -165,10 +163,10 @@ SONext ==   \/ SOInsert
 (**************************)
 SOSpec == SOInit /\ [][SONext]_<<keys, list, buckets, size, count>>
 
-
-(*If I can get map to work as intended...*)
-(*refinement mapping??*)
-INSTANCE  hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
+(*********)
+(*A refinement mapping of the hashmap spec with the map defined by the SOFind action*)
+(***********)
+INSTANCE hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
 (********************************)
 (*Split-order implements hashmap*)
 (********************************)
