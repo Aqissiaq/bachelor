@@ -156,8 +156,8 @@ SORemove == /\  \E k \in PossibleKeys :
 (**************************)
 SONext ==   \/ SOInsert
             \/ SORemove
-            \/ \E k \in keys : SOFind(k) \in PossibleValues /\ UNCHANGED <<keys, list, buckets, size, count>>
-            \/ \E k \in (PossibleKeys \ keys) : SOFind(k) = NULL /\ UNCHANGED <<keys, list, buckets, size, count>>
+            \* \/ \E k \in keys : SOFind(k) \in PossibleValues /\ UNCHANGED <<keys, list, buckets, size, count>>
+            \* \/ \E k \in (PossibleKeys \ keys) : SOFind(k) = NULL /\ UNCHANGED <<keys, list, buckets, size, count>>
             \/ BucketGrow
 
 (**************************)
@@ -168,10 +168,10 @@ SOSpec == SOInit /\ [][SONext]_<<keys, list, buckets, size, count>>
 
 (*If I can get map to work as intended...*)
 (*refinement mapping??*)
-\* INSTANCE  hashmap
+INSTANCE  hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
 (********************************)
 (*Split-order implements hashmap*)
 (********************************)
-\* THEOREM SOSpec => HashmapSpec
+THEOREM SOSpec => HashmapSpec
 
 ======================================================================================
