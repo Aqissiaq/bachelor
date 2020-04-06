@@ -683,6 +683,47 @@ Split-order implements hashmap
 \end{figure}
 
 In order to show the implementation of hashmap by SplitOrder, a refinement mapping is defined. This is a way to describe the behavior of SplitOrder in terms of the variables of hashmap. The mapping replaces the variable \textit{map} in hashmap with the \textit{SOFind} operation defined in SplitOrder. It is necessary to perform such a replacement because SplitOrder does not define a simple map from keys to values, but rather uses the structure of buckets and list nodes to find the correct node. The refinement mapping ans subsequent implementation theorem can be seen in \autoref{fig:implementation}.
+
+\begin{figure}
+\begin{tla}
+(*************************************)
+(*Type correctness of keys and values*)
+(*************************************)
+SOTypeOK == \forall k \in keys :
+                /\ k \in PossibleKeys
+                /\ list[SORegularKey(k)] \in PossibleValues
+
+(***************************************************************)
+(*Each bucket is either uninitialized or points to a dummy node*)
+(***************************************************************)
+SOBucketOK == \forall n \in 0..size :
+                    \/ buckets[n] = NULL
+                    \/ buckets[n] = SODummyKey(n)
+\end{tla}
+\begin{tlatex}
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Type correctness of keys and values
+\end{cpar}%
+\end{lcom}%
+\@x{ SOTypeOK \.{\defeq} \forall\, k \.{\in} keys \.{:}}%
+\@x{\@s{16.4} \.{\land} k \.{\in} PossibleKeys}%
+\@x{\@s{16.4} \.{\land} list [ SORegularKey ( k ) ] \.{\in} PossibleValues}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Each bucket is either uninitialized or points to a dummy node
+\end{cpar}%
+\end{lcom}%
+\@x{ SOBucketOK \.{\defeq} \forall\, n \.{\in} 0 \.{\dotdot} size \.{:}}%
+\@x{\@s{24.59} \.{\lor} buckets [ n ] \.{=} NULL}%
+\@x{\@s{24.59} \.{\lor} buckets [ n ] \.{=} SODummyKey ( n )}%
+\end{tlatex}
+\caption{Invariants in TLA^+}
+\label{fig:invariants}
+\end{figure}
+
+
 \chapter{Results}\label{ch:results}
 \section{Discussion}\label{sec:discussion}
 

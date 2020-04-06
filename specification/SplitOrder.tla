@@ -112,12 +112,13 @@ ListFind(b, k) == IF k > b /\ list[b] /= NULL THEN list[k] ELSE NULL
 (*SOFind finds a key in the map*)
 SOFind(k) == IF buckets[k % size] = NULL
                 THEN NULL \* should initialize bucket, but also needs a "return value"
-                ELSE ListFind(buckets[k % size], k)
+                ELSE ListFind(buckets[k % size], SORegularKey(k))
 
 Min(a, b) == IF a > b THEN b ELSE a
-BucketGrow == IF count /= 0 /\ size \div count > LoadFactor
-                THEN size' = Min(size * 2, MaxSize) /\ UNCHANGED <<keys, list, buckets, count>> 
-                ELSE UNCHANGED <<keys, list, buckets, count, size>>
+BucketGrow == size' = Min(size*2, MaxSize)
+    \* IF count' /= 0 /\ size \div count' > LoadFactor
+    \*             THEN size' = Min(size * 2, MaxSize) 
+    \*             ELSE UNCHANGED size
 
 (****************************)
 (*Inserting into the buckets*)
@@ -144,19 +145,17 @@ BucketRemove(k) == /\ ListRemove(SORegularKey(k))
 SOInsert == /\  \E k \in PossibleKeys :
                     \E v \in PossibleValues :
                         BucketInsert(k, v)
-            /\ UNCHANGED size
 
 SORemove == /\  \E k \in PossibleKeys :
                     BucketRemove(k)
-            /\ UNCHANGED size
 
 
 (**************************)
 (*The Next for split order*)
 (**************************)
-SONext ==   \/ SOInsert
-            \/ SORemove
-            \/ BucketGrow
+SONext ==   /\ \/ SOInsert
+               \/ SORemove
+            /\ BucketGrow
 
 (**************************)
 (*Split-order spec        *)
@@ -166,10 +165,24 @@ SOSpec == SOInit /\ [][SONext]_<<keys, list, buckets, size, count>>
 (*********)
 (*A refinement mapping of the hashmap spec with the map defined by the SOFind action*)
 (***********)
-INSTANCE hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
+HashmapSpec == INSTANCE hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
+
 (********************************)
 (*Split-order implements hashmap*)
 (********************************)
-THEOREM SOSpec => HashmapSpec
+ THEOREM SOSpec => HashmapSpec!SOSpec
 
+(*************************************)
+(*Type correctness of keys and values*)
+(*************************************)
+SOTypeOK == \forall k \in keys :
+                /\ k \in PossibleKeys
+                /\ list[SORegularKey(k)] \in PossibleValues
+
+(***************************************************************)
+(*Each bucket is either uninitialized or points to a dummy node*)
+(***************************************************************)
+SOBucketOK == \forall n \in 0..size-1 :
+                    \/ buckets[n] = NULL
+                    \/ buckets[n] = SODummyKey(n)
 ======================================================================================
