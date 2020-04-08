@@ -1,0 +1,30 @@
+Introduction:
+	begynn med hash tables, make that the red thread.
+	concurrency tied in or moved later
+	"scale better" - specify
+
+	"this problem" which problem?
+
+Method
+	maybe move discussion of logics to method section
+
+Scope
+	correctness (not performance)
+	limited by hardware for model checking
+
+2.3 SO hashmap
+	move introduction of hashmaps to intro
+	at least the generic stuff (that 3rd paragraph)
+	"this problem" again
+
+3. Specification
+	maybe rename chapter to just "specification" or "specification of split-order map"
+	maybe move goal to intro/scope
+
+	maybe enumerate parts of the spec and create subsections
+	clarify distinction -> expose structure
+
+Q: my learning vs useful stuff
+	"Åsmund had lært seg TLA+" er et greit utbytte, men "Åsmund har lagd noe nyttig" er bedre
+	bruk litt tid til å prøve denne uka
+	skriv litt discussion om arbeidet så langt først
