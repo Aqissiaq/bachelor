@@ -115,11 +115,9 @@ SOFind(k) == IF buckets[k % size] = NULL
                 ELSE ListFind(buckets[k % size], SORegularKey(k))
 
 Min(a, b) == IF a > b THEN b ELSE a
-BucketGrow == size' = Min(size*2, MaxSize)
-    \* IF count' /= 0 /\ size \div count' > LoadFactor
-    \*             THEN size' = Min(size * 2, MaxSize) 
-    \*             ELSE UNCHANGED size
-
+BucketGrow == IF count \div size > LoadFactor
+                THEN size' = Min(size * 2, MaxSize) 
+                ELSE UNCHANGED size
 (****************************)
 (*Inserting into the buckets*)
 (****************************)
@@ -153,9 +151,9 @@ SORemove == /\  \E k \in PossibleKeys :
 (**************************)
 (*The Next for split order*)
 (**************************)
-SONext ==   /\ \/ SOInsert
-               \/ SORemove
-            /\ BucketGrow
+SONext ==   \/ SOInsert /\ BucketGrow
+            \/ SORemove /\ UNCHANGED size
+            
 
 (**************************)
 (*Split-order spec        *)
@@ -165,12 +163,12 @@ SOSpec == SOInit /\ [][SONext]_<<keys, list, buckets, size, count>>
 (*********)
 (*A refinement mapping of the hashmap spec with the map defined by the SOFind action*)
 (***********)
-HashmapSpec == INSTANCE hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
+Hashmap == INSTANCE hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
 
 (********************************)
 (*Split-order implements hashmap*)
 (********************************)
- THEOREM SOSpec => HashmapSpec!SOSpec
+ THEOREM SOSpec => Hashmap!HashmapSpec
 
 (*************************************)
 (*Type correctness of keys and values*)
