@@ -7,7 +7,7 @@ EXTENDS Integers
 
 CONSTANTS NULL, PossibleKeys, PossibleValues, LoadFactor, MaxSize
 
-VARIABLES keys, list, buckets, size, count
+VARIABLES keys, AuxKeys, list, buckets, size, count, map
 
 ASSUME
     /\ PossibleKeys \subseteq 0..15
@@ -76,10 +76,12 @@ Parent(b) ==    CASE b = 0 -> 0
 (*The list initially contains only the 0 dummy node *)
 (****************************************************)
 SOInit ==   /\ keys = {}
+            /\ AuxKeys = {}
             /\ list = [n \in 0..255 |-> IF n = 0 THEN SODummyKey(0) ELSE NULL]
             /\ buckets = [m \in PossibleKeys |-> IF m = 0 THEN SODummyKey(0) ELSE NULL]
             /\ size = 1
             /\ count = 0
+            /\ map = [k \in PossibleKeys |-> NULL]
 
 (**********************************)
 (*Inserting into the "linked list"*)
@@ -103,42 +105,50 @@ BucketInit(b) == IF buckets[Parent(b)] = NULL /\ Parent(b) /= 0
                     THEN BucketInit(Parent(b))
                     ELSE buckets' = [buckets EXCEPT ![b] = SODummyKey(b)]
 
-(********************************************************)
-(*Find the value of the key k in the bucket b           *)
-(*Results in the value if b is initialized and k is in b*)
-(********************************************************)
-ListFind(b, k) == IF k > b /\ list[b] /= NULL THEN list[k] ELSE NULL
+(**********************************************)
+(*Find the value of the key k in the bucket b *)
+(*Results in the value if k is in b           *)
+(**********************************************)
+ListFind(b, k) == IF k > b THEN list[k] ELSE NULL
 
-(*SOFind finds a key in the map*)
-SOFind(k) == IF buckets[k % size] = NULL
-                THEN NULL \* should initialize bucket, but also needs a "return value"
-                ELSE ListFind(buckets[k % size], SORegularKey(k))
+(*****************************************************)
+(*SOFind updates the state of the map and keys       *)
+(*variables by searching through the buckets and list*)
+(*****************************************************)
+SOFind == \E k \in AuxKeys :
+                /\ keys' = keys \union {k}
+                /\ AuxKeys' = AuxKeys \ {k}
+                /\ IF buckets[k % size] = NULL
+                     THEN /\ BucketInit(k % size)
+                          /\ map' = [map EXCEPT ![k] = ListFind(k % size, SORegularKey(k))]
+                     ELSE /\ UNCHANGED buckets
+                          /\ map' = [map EXCEPT ![k] = ListFind(k % size, SORegularKey(k))]
 
 Min(a, b) == IF a > b THEN b ELSE a
 BucketGrow == IF count \div size > LoadFactor
                 THEN size' = Min(size * 2, MaxSize) 
                 ELSE UNCHANGED size
-(****************************)
+
+(****************************) 
 (*Inserting into the buckets*)
 (****************************)
 BucketInsert(k, v) == (*Either a bucket needs to be initialized*)
                     \/  /\ buckets[k % size] = NULL
                         /\ BucketInit(k % size)
                         /\ ListInsert(SORegularKey(k), v)
-                        /\ keys' = keys \union {k}                      
+                        /\ AuxKeys' = AuxKeys \union {k}                      
                       (*Or the bucket is already initialized*)
                     \/  /\ buckets[k % size] /= NULL
                         /\ ListInsert(SORegularKey(k), v)
-                        /\ keys' = keys \union {k}
+                        /\ AuxKeys' = AuxKeys \union {k}
                         /\ UNCHANGED <<buckets>>
 
 (***************************)
 (*Removing from the buckets*)
 (***************************)                
 BucketRemove(k) == /\ ListRemove(SORegularKey(k))
-                   /\ keys' = keys \ {k}
+                   /\ AuxKeys' = AuxKeys \ {k}
                    /\ UNCHANGED <<buckets>>
-
 
 SOInsert == /\  \E k \in PossibleKeys :
                     \E v \in PossibleValues :
@@ -147,33 +157,33 @@ SOInsert == /\  \E k \in PossibleKeys :
 SORemove == /\  \E k \in PossibleKeys :
                     BucketRemove(k)
 
-
 (**************************)
 (*The Next for split order*)
 (**************************)
-SONext ==   \/ SOInsert /\ BucketGrow
-            \/ SORemove /\ UNCHANGED size
+SONext ==   \/ SOInsert /\ BucketGrow /\ UNCHANGED <<map, keys>>
+            \/ SORemove /\ UNCHANGED <<size, map, keys>>
+            \/ SOFind   /\ UNCHANGED <<size, count, list>>
             
 
 (**************************)
 (*Split-order spec        *)
 (**************************)
-SOSpec == SOInit /\ [][SONext]_<<keys, list, buckets, size, count>>
+SOSpec == SOInit /\ [][SONext]_<<keys, AuxKeys, list, buckets, size, count, map>>
 
-(*********)
-(*A refinement mapping of the hashmap spec with the map defined by the SOFind action*)
-(***********)
-Hashmap == INSTANCE hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
+(*******************************************************************)
+(*An instance of the hashmap spec is needed to prove implementation*)
+(*******************************************************************)
+INSTANCE hashmap
 
 (********************************)
 (*Split-order implements hashmap*)
 (********************************)
- THEOREM SOSpec => Hashmap!HashmapSpec
+THEOREM SOSpec => HashmapSpec
 
 (*************************************)
 (*Type correctness of keys and values*)
 (*************************************)
-SOTypeOK == \forall k \in keys :
+SOTypeOK == \forall k \in AuxKeys :
                 /\ k \in PossibleKeys
                 /\ list[SORegularKey(k)] \in PossibleValues
 
