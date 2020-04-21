@@ -100,7 +100,7 @@ Insert1 ==
         /\ op.step = 1
         /\ IF buckets[op.key % size] = NULL
             (*Kind of ugly because nextstep and "begin bucket_init" both modify the state of activeOps and need to be combined*)
-            THEN activeOps' = (activeOps \ op)
+            THEN activeOps' = (activeOps \ {op})
                                 \union {[op EXCEPT !["step"] = op.step + 1]}
                                 \union {[type |-> {"bucket_init"}, step |-> 1, bucket |-> op.key % size]}
             ELSE NextStep(op)
@@ -139,7 +139,7 @@ Delete1 ==
         /\ op.type = {"delete"}
         /\ op.step = 1
         /\ IF buckets[op.key % size] = NULL
-                THEN activeOps' = (activeOps \ op)
+                THEN activeOps' = (activeOps \ {op})
                                     \union {[op EXCEPT !["step"] = op.step + 1]}
                                     \union {[type|-> {"bucket_init"}, step |-> 1, bucket |-> op.key % size]}
                 ELSE NextStep(op)
