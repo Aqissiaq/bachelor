@@ -242,6 +242,8 @@ The specification consists of two main parts:
     \item an [insert name of structure here] \textit{implementing} this map.
 \end{enumerate}
 The generic specification describes the workings of a hashmap with insert and remove operations and ensures that this structure behaves as specified. The [insert name of structure] specification describes Shalev et al.'s specific structure and algorithms for implementing hashmap functionality.
+\\\\
+We present two versions of the specification at two levels of granularity. The first assumes the atomicity of hashmap operations, while the second describes entirely concurrent operations.
 
 \section{Goal}\label{sec:spec-goals}
 The purpose of our specification is to verify the claims about correctness made by Shalev et al. Because TLA+ is designed for checking liveness and safety properties~\cite{Lund2019} we will not check claims about the performance of the implementation. This leaves 4 invariants:
@@ -251,10 +253,11 @@ The purpose of our specification is to verify the claims about correctness made 
     \item if a key $k$ is in the map, then \texttt{insert(k)} fails. Otherwise $k$ is added to the map
     \item if a key $k$ is in the map, then \texttt{remove(k)} removes it from the map. Otherwise it fails.
 \end{itemize}
-[MIGHT CHANGE:] Rather than having functions return error codes, the generic specification describes the correct behavior of each. This allows us to check invariants by implementation of this generic specification, since implementing it correctly corresponds to correct behavior.
+The non-concurrent specification demonstrates correctness by implementing a generic hashmap specification which describes corerct behavior, while the concurrent specification looks directly at the above invariants.
 Additionally we will check \textit{type safety}: at every point of execution, all keys and values are members of predefined key- and value-sets, respectively.
 
-\section{Hashmap for implementation}
+\section{Non-Concurrent Specification}
+\subsection{Hashmap for Implementation}
 \begin{figure}
     \begin{tla}
         ------------------------------ MODULE hashmap ------------------------------
@@ -292,11 +295,6 @@ Insert ==   \exists k \in PossibleKeys :
 Remove ==   \exists k \in PossibleKeys :
                 /\ keys' = keys \ {k}
                 /\ map' = [map EXCEPT ![k] = NULL]
-
-(*******************************************************)
-(*Find returns the value stored in the map with key k  *)
-(*******************************************************)
-Find(k) == map[k]
 
 (*******************************************************)
 (*Next is either an insert, a remove or a find         *)
@@ -372,13 +370,6 @@ Remove sets exactly one mapping to NULL
 \@pvspace{8.0pt}%
 \begin{lcom}{0}%
 \begin{cpar}{0}{F}{F}{0}{0}{}%
-Find returns the value stored in the map with key k  
-\end{cpar}%
-\end{lcom}%
-\@x{ Find ( k ) \.{\defeq} map [ k ]}%
-\@pvspace{8.0pt}%
-\begin{lcom}{0}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
 Next is either an insert, a remove or a find         
  Find(k) returns NULL if not in map, otherwise a value
 \end{cpar}%
@@ -421,308 +412,222 @@ Insert adds a key to the set of keys and changes one entry in the map. The key i
 \\\\
 Remove removes one key from the set and changes its mapping to NULL. This is done through the set difference operator and the same \texttt{EXCEPT} construct as in insert. Both operations are idempotent, so attempting to remove a key that is not in the map will result in no change.
 \\\\
-The specification also contains temporal formulae that specify correct behavior. These have been checked with the TLC model checker [insert results here maybe?].
+The specification also contains temporal formulae \textit{TypeOK} and \textit{KeyHasValue} that specify correct behavior. These have been checked with the TLC model checker [insert results here maybe?].
 \\\\
-Finally the entire hashmap is described by \textit{HashmapSpec}. This temporal formula states that the hashmap specification is fulfilled if the initial state fulfills \textit{HashmapInit} and each action fulfills \textit{HashmapNext}. This formula is used to prove a more complex specificaiton implements the semantics of Hashmap.
+Finally the entire hashmap is described by \textit{HashmapSpec}. This temporal formula states that the hashmap specification is fulfilled if the initial state fulfills \textit{HashmapInit} and each action fulfills \textit{HashmapNext}. This formula is used to prove a more complex specification implements the semantics of Hashmap.
 \\\\
 The theorem $SOSpec \Rightarrow HashmapSpec$ states that any program following the split-order specification also follows the hashmap specification. Hence, any program following the split-order specification is a correct implementation of a hashmap. It is tested by checking the property \textit{HashmapSpec} in a model checking SOSpec.
 
-\section{Split-ordered List}
+\subsection{Specification}
+The specification consists of three main parts:
+\begin{enumerate}
+    \item \label{SpecList:structures} the data structures,
+    \item \label{SpecList:operations} operations on the map, and
+    \item \label{SpecList:spec} the abstract specification tying them together.
+\end{enumerate}
+This section describes the construction and function of each in turn.
 \begin{figure}
     \begin{tla}
-        EXTENDS Integers
+EXTENDS Integers
 
-        CONSTANTS NULL, PossibleKeys, PossibleValues, LoadFactor, MaxSize
+CONSTANTS NULL, PossibleKeys, PossibleValues, LoadFactor, MaxSize
 
-        VARIABLES keys, list, buckets, size, count
+VARIABLES keys, AuxKeys, list, buckets, size, count, map
 
-        ASSUME
-            /\ PossibleKeys \subseteq 0..15
-            /\ NULL \notin PossibleKeys
-            /\ NULL \notin PossibleValues
+ASSUME
+    /\ PossibleKeys \subseteq 0..15
+    /\ NULL \notin PossibleKeys
+    /\ NULL \notin PossibleValues
 
-        SOInit == /\ keys    =  {}
-                  /\ list    =  [n \in 0..255 |-> IF n = 0 THEN 0 ELSE NULL]
-                  /\ buckets =  [m \in PossibleKeys |-> IF m = 0 THEN 0 ELSE NULL]
-                  /\ size    =  1
-                  /\ count   =  0
-    \end{tla}
+(****************************************************)
+(*The Init for split-order                          *)
+(*keys is initially empty                           *)
+(*the map maps every possible key to NULL           *)
+(*The list initially contains only the 0 dummy node *)
+(****************************************************)
+SOInit ==   /\ keys = {}
+            /\ AuxKeys = {}
+            /\ list = [n \in 0..255 |-> IF n = 0 THEN SODummyKey(0) ELSE NULL]
+            /\ buckets = [m \in PossibleKeys |-> IF m = 0 THEN SODummyKey(0) ELSE NULL]
+            /\ size = 1
+            /\ count = 0
+            /\ map = [k \in PossibleKeys |-> NULL]
+
+\end{tla}
 \begin{tlatex}
-\@x{\@s{32.8} {\EXTENDS} Integers}%
+\@x{ {\EXTENDS} Integers}%
 \@pvspace{8.0pt}%
- \@x{\@s{32.8} {\CONSTANTS} NULL ,\, PossibleKeys ,\, PossibleValues ,\,
- LoadFactor ,\, MaxSize}%
+ \@x{ {\CONSTANTS} NULL ,\, PossibleKeys ,\, PossibleValues ,\, LoadFactor ,\,
+ MaxSize}%
 \@pvspace{8.0pt}%
-\@x{\@s{32.8} {\VARIABLES} keys ,\, list ,\, buckets ,\, size ,\, count}%
+ \@x{ {\VARIABLES} keys ,\, AuxKeys ,\, list ,\, buckets ,\, size ,\, count
+ ,\, map}%
 \@pvspace{8.0pt}%
-\@x{\@s{32.8} {\ASSUME}}%
-\@x{\@s{49.19} \.{\land} PossibleKeys \.{\subseteq} 0 \.{\dotdot} 15}%
-\@x{\@s{49.19} \.{\land} NULL \.{\notin} PossibleKeys}%
-\@x{\@s{49.19} \.{\land} NULL \.{\notin} PossibleValues}%
+\@x{ {\ASSUME}}%
+\@x{\@s{16.4} \.{\land} PossibleKeys \.{\subseteq} 0 \.{\dotdot} 15}%
+\@x{\@s{16.4} \.{\land} NULL \.{\notin} PossibleKeys}%
+\@x{\@s{16.4} \.{\land} NULL \.{\notin} PossibleValues}%
 \@pvspace{8.0pt}%
-\@x{\@s{32.8} SOInit \.{\defeq} \.{\land} keys\@s{12.29} \.{=}\@s{4.1} \{ \}}%
- \@x{\@s{32.8} \.{\land} list\@s{12.29} \.{=}\@s{4.09} [ n \.{\in} 0
- \.{\dotdot} 255 \.{\mapsto} {\IF} n \.{=} 0 \.{\THEN} 0 \.{\ELSE} NULL ]}%
- \@x{\@s{32.8} \.{\land} buckets\@s{12.29} \.{=}\@s{4.1} [ m \.{\in}
- PossibleKeys \.{\mapsto} {\IF} m \.{=} 0 \.{\THEN} 0 \.{\ELSE} NULL ]}%
-\@x{\@s{32.8} \.{\land} size\@s{12.29} \.{=}\@s{4.1} 1}%
-\@x{\@s{32.8} \.{\land} count\@s{12.29} \.{=}\@s{4.1} 0}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+The Init for split-order                          
+ keys is initially empty                           
+ the map maps every possible key to NULL           
+ The list initially contains only the 0 dummy node 
+\end{cpar}%
+\end{lcom}%
+\@x{ SOInit \.{\defeq}\@s{8.2} \.{\land} keys \.{=} \{ \}}%
+\@x{\@s{8.2} \.{\land} AuxKeys \.{=} \{ \}}%
+ \@x{\@s{8.2} \.{\land} list \.{=} [ n \.{\in} 0 \.{\dotdot} 255 \.{\mapsto}
+ {\IF} n \.{=} 0 \.{\THEN} SODummyKey ( 0 ) \.{\ELSE} NULL ]}%
+ \@x{\@s{8.2} \.{\land} buckets \.{=} [ m \.{\in} PossibleKeys \.{\mapsto}
+ {\IF} m \.{=} 0 \.{\THEN} SODummyKey ( 0 ) \.{\ELSE} NULL ]}%
+\@x{\@s{8.2} \.{\land} size \.{=} 1}%
+\@x{\@s{8.2} \.{\land} count \.{=} 0}%
+\@x{\@s{8.2} \.{\land} map \.{=} [ k \.{\in} PossibleKeys \.{\mapsto} NULL ]}%
+\@pvspace{8.0pt}%
 \end{tlatex}
-    \caption{Initial state of the split-order map}
-    \label{fig:split-order-init}
+\caption{The initial state of the specificaiton}
+\label{fig:SO-init}
 \end{figure}
+\\\\
+The necessary data structures are a list of nodes and an array of buckets pointing to nodes. These are both specified as TLA+ functions. The list is a function from the set of list-keys to the set of values, while bucekts is a function from keys to list-keys. Additionally the specification includes a set of keys and a map from keys to values that correspond to the keys and map in the generic specification. The initial state of the map, showing these structures and their initial values is shown in \autoref{fig:SO-init}
 
 \begin{figure}
-    \begin{tla}
-        ListInsert(k, v) == IF list[k] = NULL
-                        THEN list' = [list EXCEPT ![k] = v] /\ count' = count + 1
-                        ELSE UNCHANGED <<list, count>>
-    \end{tla}
-\begin{tlatex}
-\@x{\@s{32.8} ListInsert ( k ,\, v ) \.{\defeq} {\IF} list [ k ] \.{=} NULL}%
- \@x{\@s{36.89} \.{\THEN} list \.{'} \.{=} [ list {\EXCEPT} {\bang} [ k ]
- \.{=} v ] \.{\land} count \.{'} \.{=} count \.{+} 1}%
-\@x{\@s{36.89} \.{\ELSE} {\UNCHANGED} {\langle} list ,\, count {\rangle}}%
-\end{tlatex}
-    \caption{Insertion into "list"}
-    \label{fig:list-insert}
-\end{figure}
+\begin{tla}
+SOInsert == /\  \E k \in PossibleKeys :
+                \E v \in PossibleValues :
+                    BucketInsert(k, v)
 
-The split-order specification consists of three main parts. The necessary data structures (list, buckets), operations on the map, and an abstract specification tying them together. This section provides examples and explains the structure of each. The full specification can be found in \autoref{appendix:specification}.
-\\\\
-\autoref{fig:split-order-init} shows the beginning of the specification. The sets of possible keys and values, as well as the maximum size and load factor of the map are parameters of the model. The variables for a list and buckets are set up, as well as the set of keys, and variables storing the number of entries and current number of buckets.\\
-Their initial values are set such that there is one bucket pointing to the dummy node with 0 as its key and the set of real keys is empty.
-\\\\
-\begin{figure}
-    \begin{tla}
-        BucketInsert(k, v) ==
-                    (*Either a bucket needs to be initialized*)
-                    \/  /\ buckets[k % size] = NULL
-                        /\ BucketInit(k % size)
-                        /\ ListInsert(SORegularKey(k), v)
-                        /\ keys' = keys \union {k}                      
-                      (*Or the bucket is already initialized*)
-                    \/  /\ buckets[k % size] /= NULL
-                        /\ ListInsert(SORegularKey(k), v)
-                        /\ keys' = keys \union {k}
-                        /\ UNCHANGED <<buckets>>
-    \end{tla}
+BucketInsert(k, v) ==
+(*Either a bucket needs to be initialized*)
+    \/  /\ buckets[k % size] = NULL
+        /\ BucketInit(k % size)
+        /\ ListInsert(SORegularKey(k), v)
+        /\ AuxKeys' = AuxKeys \union {k}                      
+    (*Or the bucket is already initialized*)
+    \/  /\ buckets[k % size] /= NULL
+        /\ ListInsert(SORegularKey(k), v)
+        /\ AuxKeys' = AuxKeys \union {k}
+        /\ UNCHANGED <<buckets>>
+
+ListInsert(k, v) == IF list[k] = NULL
+                THEN list' = [list EXCEPT ![k] = v] /\ count' = count + 1
+                ELSE UNCHANGED <<list, count>>
+
+\end{tla} 
 \begin{tlatex}
-\@x{\@s{32.8} BucketInsert ( k ,\, v ) \.{\defeq}}%
-\@x{\@s{32.8}}%
+\@x{ SOInsert \.{\defeq} \.{\land}\@s{4.1} \E\, k \.{\in} PossibleKeys \.{:}}%
+\@x{\@s{4.1} \E\, v \.{\in} PossibleValues \.{:}}%
+\@x{\@s{8.2} BucketInsert ( k ,\, v )}%
+\@pvspace{8.0pt}%
+\@x{ BucketInsert ( k ,\, v ) \.{\defeq}}%
+\@x{}%
 \@y{%
  Either a bucket needs to be initialized
 }%
 \@xx{}%
- \@x{\@s{32.8} \.{\lor}\@s{4.1} \.{\land} buckets [ k \.{\%} size ] \.{=}
+ \@x{\@s{16.4} \.{\lor}\@s{4.1} \.{\land} buckets [ k \.{\%} size ] \.{=}
  NULL}%
-\@x{\@s{36.89} \.{\land} BucketInit ( k \.{\%} size )}%
-\@x{\@s{36.89} \.{\land} ListInsert ( SORegularKey ( k ) ,\, v )}%
-\@x{\@s{36.89} \.{\land} keys \.{'} \.{=} keys \.{\cup} \{ k \}}%
-\@x{\@s{41.0}}%
+\@x{\@s{20.5} \.{\land} BucketInit ( k \.{\%} size )}%
+\@x{\@s{20.5} \.{\land} ListInsert ( SORegularKey ( k ) ,\, v )}%
+\@x{\@s{20.5} \.{\land} AuxKeys \.{'} \.{=} AuxKeys \.{\cup} \{ k \}}%
+\@x{\@s{16.4}}%
 \@y{%
  Or the bucket is already initialized
 }%
 \@xx{}%
- \@x{\@s{32.8} \.{\lor}\@s{4.1} \.{\land} buckets [ k \.{\%} size ] \.{\neq}
+ \@x{\@s{16.4} \.{\lor}\@s{4.1} \.{\land} buckets [ k \.{\%} size ] \.{\neq}
  NULL}%
-\@x{\@s{36.89} \.{\land} ListInsert ( SORegularKey ( k ) ,\, v )}%
+\@x{\@s{20.5} \.{\land} ListInsert ( SORegularKey ( k ) ,\, v )}%
+\@x{\@s{20.5} \.{\land} AuxKeys \.{'} \.{=} AuxKeys \.{\cup} \{ k \}}%
+\@x{\@s{20.5} \.{\land} {\UNCHANGED} {\langle} buckets {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ListInsert ( k ,\, v ) \.{\defeq} {\IF} list [ k ] \.{=} NULL}%
+ \@x{\@s{4.1} \.{\THEN} list \.{'} \.{=} [ list {\EXCEPT} {\bang} [ k ] \.{=}
+ v ] \.{\land} count \.{'} \.{=} count \.{+} 1}%
+\@x{\@s{4.1} \.{\ELSE} {\UNCHANGED} {\langle} list ,\, count {\rangle}}%
+\@pvspace{8.0pt}%
+\end{tlatex}
+\caption{The \textit{Insert} operation}
+\label{fig:SO-insert}
+\end{figure}
+\\\\
+The \textit{Insert} and \textit{Remove} operations are written in three layers. \autoref{fig:SO-insert} shows the Insert operation. First, \textit{SOInsert} describes a very high-level view: there exists some key and some value, and we insert the value with that key. \textit{BucketInsert} is the most involved, corresponding to the insert operation described by Shalev et al.'s pseudocode~\cite{Shalev2006}. Here the correct bucket is found or initialized and the value is inserted into the list pointed to by this bucket with the split-order key. FInally, \textit{ListInsert} inserts the value into the list, or ignores it if the node already has a value.
+
+\begin{figure}
+    \begin{tla}
+        SONext ==   \/ SOInsert /\ BucketGrow /\ UNCHANGED <<map, keys>>
+            \/ SORemove /\ UNCHANGED <<size, map, keys>>
+            \/ SOFind   /\ UNCHANGED <<size, count, list>>
+    \end{tla}
+\begin{tlatex}
+ \@x{\@s{32.8} SONext \.{\defeq}\@s{8.2} \.{\lor} SOInsert \.{\land}
+ BucketGrow \.{\land} {\UNCHANGED} {\langle} map ,\, keys {\rangle}}%
+ \@x{\@s{49.19} \.{\lor} SORemove \.{\land} {\UNCHANGED} {\langle} size ,\,
+ map ,\, keys {\rangle}}%
+ \@x{\@s{49.19} \.{\lor} SOFind \.{\land} {\UNCHANGED} {\langle} size ,\,
+ count ,\, list {\rangle}}%
+\end{tlatex}
+    \caption{The Next action}
+    \label{fig:SO-next}
+\end{figure}
+\\\\
+Finally, the \textit{Next} action shown in \autoref{fig:SO-next} describes the transition of the system from one state to another. It states that such a transition consists of either inserting and growing the map, removing, or the \textit{SOFind} operation.
+
+\begin{figure}
+    \begin{tla}
+        SOFind == \E k \in AuxKeys :
+                /\ keys' = keys \union {k}
+                /\ AuxKeys' = AuxKeys \ {k}
+                /\ IF buckets[k % size] = NULL
+                     THEN /\ BucketInit(k % size)
+                          /\ map' = [map EXCEPT ![k] = ListFind(k % size, SORegularKey(k))]
+                     ELSE /\ UNCHANGED buckets
+                          /\ map' = [map EXCEPT ![k] = ListFind(k % size, SORegularKey(k))]
+
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8} SOFind \.{\defeq} \E\, k \.{\in} AuxKeys \.{:}}%
 \@x{\@s{36.89} \.{\land} keys \.{'} \.{=} keys \.{\cup} \{ k \}}%
-\@x{\@s{36.89} \.{\land} {\UNCHANGED} {\langle} buckets {\rangle}}%
+ \@x{\@s{36.89} \.{\land} AuxKeys \.{'} \.{=} AuxKeys \.{\,\backslash\,} \{ k
+ \}}%
+\@x{\@s{36.89} \.{\land} {\IF} buckets [ k \.{\%} size ] \.{=} NULL}%
+\@x{\@s{45.1} \.{\THEN} \.{\land} BucketInit ( k \.{\%} size )}%
+ \@x{\@s{45.1} \.{\land} map \.{'} \.{=} [ map {\EXCEPT} {\bang} [ k ] \.{=}
+ ListFind ( k \.{\%} size ,\, SORegularKey ( k ) ) ]}%
+\@x{\@s{45.1} \.{\ELSE} \.{\land} {\UNCHANGED} buckets}%
+ \@x{\@s{45.1} \.{\land} map \.{'} \.{=} [ map {\EXCEPT} {\bang} [ k ] \.{=}
+ ListFind ( k \.{\%} size ,\, SORegularKey ( k ) ) ]}%
+\@pvspace{8.0pt}%
 \end{tlatex}
-\caption{Inserting a key, value pair into the map}
-\label{fig:bucket-insert}
+    \caption{The \textit{SOFind} operation}
+    \label{fig:SO-find}
 \end{figure}
-
 \begin{figure}
     \begin{tla}
-        RECURSIVE BucketInit(_)
-        BucketInit(b) == IF buckets[Parent(b)] = NULL /\ Parent(b) /= 0
-                            THEN BucketInit(Parent(b))
-                            ELSE buckets' = [buckets EXCEPT ![b] = SODummyKey(b)]
+    SOSpec == SOInit /\ [][SONext]_<<keys, AuxKeys, list, buckets, size, count, map>>
+
+    INSTANCE hashmap
+
+    THEOREM SOSpec => HashmapSpec
     \end{tla}
 \begin{tlatex}
-\@x{\@s{32.8} {\RECURSIVE} BucketInit ( \_ )}%
- \@x{\@s{32.8} BucketInit ( b ) \.{\defeq} {\IF} buckets [ Parent ( b ) ]
- \.{=} NULL \.{\land} Parent ( b ) \.{\neq} 0}%
-\@x{\@s{32.8} \.{\THEN} BucketInit ( Parent ( b ) )}%
- \@x{\@s{32.8} \.{\ELSE} buckets \.{'} \.{=} [ buckets {\EXCEPT} {\bang} [ b ]
- \.{=} SODummyKey ( b ) ]}%
-\end{tlatex}
-    \caption{Initializing a bucket}
-    \label{fig:bucket-init}
-\end{figure}
-
-The most involved operation is map insertion. This is done in the \textit{BucketInsert} action shown in \autoref{fig:bucket-insert}. \textit{BucketInserts} specifies the disjunction of having to initialize a bucket or inserting without changing buckets. In either case, a key is added to the set of keys and a node is inserted in the list.\\
-\textit{BucketInit}, shown in \autoref{fig:bucket-init} is a recursive function initializing a pucket and any of its unitialized parent buckets. The parent of a bucket is a dummy node defined such that it comes before the bucket both in the regular order and the split-order of keys.\\
-Inserting into a list is done by \textit{ListInsert} which inserts a node if there is not already one with the same key and otherwise does nothing. The list is represented as a mapping from split-order keys to values, preserving the order of nodes.
-
-\begin{figure}
-    \begin{tla}
-        (*Lookup table for bit-reversed keys with MSB set*)
-        SORegularKey(k) ==  CASE k = 0 -> 1
-                            [] k = 1 -> 9
-                            [] k = 2 -> 5
-                            [] k = 3 -> 13
-                            [] k = 4 -> 3
-                            [] k = 5 -> 11
-                            [] k = 6 -> 7
-                            [] k = 7 -> 15
-                            [] k = 8 -> 1
-                            [] k = 9 -> 9
-                            [] k = 10 -> 5
-                            [] k = 11 -> 13
-                            [] k = 12 -> 3
-                            [] k = 13 -> 11
-                            [] k = 14 -> 7
-                            [] k = 15 -> 15
-    \end{tla}
-\begin{tlatex}
-\@x{\@s{32.8}}%
-\@y{%
- Lookup table for bit-reversed keys with MSB set
-}%
-\@xx{}%
- \@x{\@s{32.8} SORegularKey ( k ) \.{\defeq}\@s{4.1} {\CASE} k \.{=} 0
- \.{\rightarrow} 1}%
-\@x{\@s{36.89} {\Box} k \.{=} 1 \.{\rightarrow} 9}%
-\@x{\@s{36.89} {\Box} k \.{=} 2 \.{\rightarrow} 5}%
-\@x{\@s{36.89} {\Box} k \.{=} 3 \.{\rightarrow} 13}%
-\@x{\@s{36.89} {\Box} k \.{=} 4 \.{\rightarrow} 3}%
-\@x{\@s{36.89} {\Box} k \.{=} 5 \.{\rightarrow} 11}%
-\@x{\@s{36.89} {\Box} k \.{=} 6 \.{\rightarrow} 7}%
-\@x{\@s{36.89} {\Box} k \.{=} 7 \.{\rightarrow} 15}%
-\@x{\@s{36.89} {\Box} k \.{=} 8 \.{\rightarrow} 1}%
-\@x{\@s{36.89} {\Box} k \.{=} 9 \.{\rightarrow} 9}%
-\@x{\@s{36.89} {\Box} k \.{=} 10 \.{\rightarrow} 5}%
-\@x{\@s{36.89} {\Box} k \.{=} 11 \.{\rightarrow} 13}%
-\@x{\@s{36.89} {\Box} k \.{=} 12 \.{\rightarrow} 3}%
-\@x{\@s{36.89} {\Box} k \.{=} 13 \.{\rightarrow} 11}%
-\@x{\@s{36.89} {\Box} k \.{=} 14 \.{\rightarrow} 7}%
-\@x{\@s{36.89} {\Box} k \.{=} 15 \.{\rightarrow} 15}%
-\end{tlatex}
-    \caption{The regular key lookup table}
-    \label{fig:key-lookup}
-\end{figure}
-
-Keys and parent nodes are computed by Shalev et al. through bit operations and reversal. Such low-level operations are not available to us, so both are done with lookup tables. The lookup table for regular split-order keys is shown in \autoref{fig:key-lookup}.
-
-\begin{figure}
-    \begin{tla}
-        SOInsert == /\  \E k \in PossibleKeys :
-                    \E v \in PossibleValues :
-                        BucketInsert(k, v)
-            /\ UNCHANGED size
-
-SORemove == /\  \E k \in PossibleKeys :
-                    BucketRemove(k)
-            /\ UNCHANGED size
-
-SONext ==   \/ SOInsert
-            \/ SORemove
-            \/ BucketGrow
-
-SOSpec == SOInit /\ [][SONext]_<<keys, list, buckets, size, count>>
-
-\end{tla}
-\begin{tlatex}
- \@x{\@s{32.8} SOInsert \.{\defeq} \.{\land}\@s{4.1} \E\, k \.{\in}
- PossibleKeys \.{:}}%
-\@x{\@s{32.8} \E\, v \.{\in} PossibleValues \.{:}}%
-\@x{\@s{36.89} BucketInsert ( k ,\, v )}%
-\@x{\@s{49.19} \.{\land} {\UNCHANGED} size}%
+ \@x{\@s{16.4} SOSpec \.{\defeq} SOInit \.{\land} {\Box} [ SONext ]_{
+ {\langle} keys ,\, AuxKeys ,\, list ,\, buckets ,\, size ,\, count ,\, map
+ {\rangle}}}%
 \@pvspace{8.0pt}%
- \@x{ SORemove \.{\defeq}\@s{49.19} \.{\land}\@s{4.1} \E\, k \.{\in}
- PossibleKeys \.{:}}%
-\@x{\@s{57.39} BucketRemove ( k )}%
-\@x{\@s{49.19} \.{\land} {\UNCHANGED} size}%
+\@x{\@s{16.4} {\INSTANCE} hashmap}%
 \@pvspace{8.0pt}%
-\@x{ SONext \.{\defeq}\@s{8.2} \.{\lor} SOInsert}%
-\@x{\@s{8.2} \.{\lor} SORemove}%
-\@x{\@s{8.2} \.{\lor} BucketGrow}%
-\@pvspace{8.0pt}%
- \@x{ SOSpec \.{\defeq} SOInit \.{\land} {\Box} [ SONext ]_{ {\langle} keys
- ,\, list ,\, buckets ,\, size ,\, count {\rangle}}}%
-\@pvspace{8.0pt}%
+\@x{\@s{16.4} {\THEOREM} SOSpec \.{\implies} HashmapSpec}%
 \end{tlatex}
-\caption{The highest-level specification of split-order map}
-\label{fig:SO-spec}
+    \caption{Implementation of generic hashmap}
+    \label{fig:SO-implementation}
 \end{figure}
+\\\\
+The \textit{SOFind} operation shown in \autoref{fig:SO-find} corresponds to the find operation in Shalev et al.'s pseudocode and is responsible for updating the map. Because we wish to show that this specification implements the generic hashmap it is necessary to update the set of keys and the map itself at the same time and so a set of auxiliary keys is maintained and only added to the "real" map once a find operation looks for them. Using the "working variables" trick, the specification can be shown to implement the generic hashmap through implication as seen in \autoref{fig:SO-implementation}.
 
-Finally, the high-order functioning of the map is specified through \textit{SONext}. \textit{SONext} specifices that in each step either a key-value pair is inserted, a key is removed, or the bucket array grows in size. \textit{SOSpec} then defines the total behaviour of the map to be a sequence of states that initially satisfies \textit{SOInit} and satisfies \textit{SONext} in all steps.
-
-\begin{figure}
-    \begin{tla}
-        (*********)
-(*A refinement mapping of the hashmap spec with the map defined by the SOFind action*)
-(***********)
-INSTANCE hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
-(********************************)
-(*Split-order implements hashmap*)
-(********************************)
-THEOREM SOSpec => HashmapSpec
-    \end{tla}
-\begin{tlatex}
-\@x{}%
-\@y{%
- A refinement mapping of the hashmap spec with the map defined by the SOFind
- action
-}%
-\@xx{}%
- \@x{ {\INSTANCE} hashmap {\WITH} map \.{\leftarrow} [ k \.{\in} PossibleKeys
- \.{\mapsto} SOFind ( k ) ]}%
-\begin{lcom}{0}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
-Split-order implements hashmap
-\end{cpar}%
-\end{lcom}%
-\@x{ {\THEOREM} SOSpec \.{\implies} HashmapSpec}%
-\end{tlatex}
-\caption{Implementation of hashmap by split-order map}
-\label{fig:implementation}
-\end{figure}
-
-In order to show the implementation of hashmap by SplitOrder, a refinement mapping is defined. This is a way to describe the behavior of SplitOrder in terms of the variables of hashmap. The mapping replaces the variable \textit{map} in hashmap with the \textit{SOFind} operation defined in SplitOrder. It is necessary to perform such a replacement because SplitOrder does not define a simple map from keys to values, but rather uses the structure of buckets and list nodes to find the correct node. The refinement mapping ans subsequent implementation theorem can be seen in \autoref{fig:implementation}.
-
-\begin{figure}
-\begin{tla}
-(*************************************)
-(*Type correctness of keys and values*)
-(*************************************)
-SOTypeOK == \forall k \in keys :
-                /\ k \in PossibleKeys
-                /\ list[SORegularKey(k)] \in PossibleValues
-
-(***************************************************************)
-(*Each bucket is either uninitialized or points to a dummy node*)
-(***************************************************************)
-SOBucketOK == \forall n \in 0..size :
-                    \/ buckets[n] = NULL
-                    \/ buckets[n] = SODummyKey(n)
-\end{tla}
-\begin{tlatex}
-\begin{lcom}{0}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
-Type correctness of keys and values
-\end{cpar}%
-\end{lcom}%
-\@x{ SOTypeOK \.{\defeq} \forall\, k \.{\in} keys \.{:}}%
-\@x{\@s{16.4} \.{\land} k \.{\in} PossibleKeys}%
-\@x{\@s{16.4} \.{\land} list [ SORegularKey ( k ) ] \.{\in} PossibleValues}%
-\@pvspace{8.0pt}%
-\begin{lcom}{0}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
-Each bucket is either uninitialized or points to a dummy node
-\end{cpar}%
-\end{lcom}%
-\@x{ SOBucketOK \.{\defeq} \forall\, n \.{\in} 0 \.{\dotdot} size \.{:}}%
-\@x{\@s{24.59} \.{\lor} buckets [ n ] \.{=} NULL}%
-\@x{\@s{24.59} \.{\lor} buckets [ n ] \.{=} SODummyKey ( n )}%
-\end{tlatex}
-\caption{Invariants in TLA^+}
-\label{fig:invariants}
-\end{figure}
-
+\section{Concurrent Specification}
 
 \chapter{Results}\label{ch:results}
 \section{Discussion}\label{sec:discussion}
@@ -905,7 +810,7 @@ SODummyKey(k) ==    CASE k = 0 -> 0
                      \/ BucketGrow
                      
                      (**************************)
-                     (*Split-order spec        *)
+                     (*Split-order spec         *)
                      (**************************)
                      SOSpec == SOInit /\ [][SONext]_<<keys, list, buckets, size, count>>
                      
@@ -915,7 +820,7 @@ SODummyKey(k) ==    CASE k = 0 -> 0
                      INSTANCE  hashmap WITH map <- [k \in PossibleKeys |-> SOFind(k)]
                      (********************************)
                      (*Split-order implements hashmap*)
-                     (********************************)
+                     (***********************************)
                      THEOREM SOSpec => HashmapSpec
                      
                      ======================================================================================
@@ -1150,7 +1055,7 @@ The Next for split order
 \@pvspace{8.0pt}%
 \begin{lcom}{32.8}%
 \begin{cpar}{0}{F}{F}{0}{0}{}%
-Split-order spec        
+Split-order spec         
 \end{cpar}%
 \end{lcom}%
  \@x{\@s{32.8} SOSpec \.{\defeq} SOInit \.{\land} {\Box} [ SONext ]_{
@@ -1178,3 +1083,4 @@ Split-order implements hashmap
 \@x{\@s{32.8}}\bottombar\@xx{}%
 \end{tlatex}
 \end{document}
+nt}
