@@ -95,6 +95,7 @@ Min(a, b) == IF a > b THEN b ELSE a
 
 (*Steps of an insert operation*)
 Insert1 == 
+    (*Start a bucket_init if necessary*)
     \E op \in activeOps :
         /\ op.type = {"insert"}
         /\ op.step = 1
@@ -107,6 +108,7 @@ Insert1 ==
         /\ UNCHANGED <<list, buckets, size, count>>
 
 Insert2 ==
+    (*If key is already in list, end operation. Else insert in list*)
     \E op \in activeOps :
         /\ op.type = {"insert"}
         /\ op.step = 2
@@ -118,6 +120,7 @@ Insert2 ==
         /\ UNCHANGED <<buckets, size, count>>
 
 Insert3 ==
+    (*Increment count*)
     \E op \in activeOps :
         /\ op.type = {"insert"}
         /\ op.step = 3
@@ -126,15 +129,17 @@ Insert3 ==
         /\ UNCHANGED <<list, buckets, size>>
 
 Insert4 ==
+    (*Change size if loadfactor is exceeded and end insert*)
     \E op \in activeOps :
     /\ op.type = {"insert"}
     /\ op.step = 4
     /\ IF count \div size > LoadFactor THEN size' = Min(2 * size, MaxSize) ELSE UNCHANGED size
-    /\ activeOps' = activeOps \ {op}
+    /\ End(op)
     /\ UNCHANGED <<list, buckets, count>>
 
 (*Steps of a delete operation*)
 Delete1 ==
+    (*Start a bucket_init if necessary*)
     \E op \in activeOps :
         /\ op.type = {"delete"}
         /\ op.step = 1
@@ -146,6 +151,7 @@ Delete1 ==
         /\ UNCHANGED <<list, buckets, size, count>>
 
 Delete2 ==
+    (*If the key is not there, end operation. Else, remove it*)
     \E op \in activeOps :
         /\ op.type = {"delete"}
         /\ op.step = 2
@@ -157,6 +163,7 @@ Delete2 ==
         /\ UNCHANGED <<buckets, size, count>>        
 
 Delete3 ==
+    (*Decrement count*)
     \E op \in activeOps :
         /\ op.type = {"delete"}
         /\ op.step = 3
@@ -166,6 +173,7 @@ Delete3 ==
 
 (*Steps of a bucket init*)
 BucketInit1 ==
+    (*Start a bucket_init on parent bucket if needed*)
     \E op \in activeOps :
         /\ op.type = {"bucket_init"}
         /\ op.step = 1
@@ -176,7 +184,8 @@ BucketInit1 ==
         /\ UNCHANGED <<buckets, size, count, list>>
 
 BucketInit2 ==
-    \E op \in activeOps :
+    (*If there is no dummy node in the list, insert it*)
+    \E op \in activeOps :activeOps' = activeOps \ {op}
         /\ op.type = {"bucket_init"}
         /\ op.step = 2
         /\  IF list[SODummyKey(op.bucket)] = NULL
@@ -186,6 +195,7 @@ BucketInit2 ==
         /\ UNCHANGED <<buckets, size, count>>
 
 BucketInit3 ==
+    (*Point bucket to dummy node*)
     \E op \in activeOps :
         /\ op.type = {"bucket_init"}
         /\ op.step = 3
@@ -212,14 +222,16 @@ SONext ==
     \/ BucketInit2
     \/ BucketInit3
 
-SOBucketsInitialized ==
+BucketsInitialized ==
     \A i \in 0..size :
         \/ buckets[i] = NULL
         \/ buckets[i] = SODummyKey(i) /\ list[SODummyKey(i)] = i
 
-SONoBucketInit ==
-    ~\E op \in activeOps : op.type = {"bucket_init"}
+OperationsOK ==
+    \A op \in activeOps :
+        op \in OperationStates
 
 =============================================================================
 \* Modification History
+\* Last modified Tue May 05 17:01:16 CEST 2020 by aqissiaq
 \* Created Sat Apr 18 15:31:35 CEST 2020 by aqissiaq
