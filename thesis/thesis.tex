@@ -418,7 +418,7 @@ Finally the entire hashmap is described by \textit{HashmapSpec}. This temporal f
 \\\\
 The theorem $SOSpec \Rightarrow HashmapSpec$ states that any program following the split-order specification also follows the hashmap specification. Hence, any program following the split-order specification is a correct implementation of a hashmap. It is tested by checking the property \textit{HashmapSpec} in a model checking SOSpec.
 
-\subsection{Specification}
+\subsection{Non-Concurrent Specification}\label{subsec:non-concurrent}
 The specification consists of three main parts:
 \begin{enumerate}
     \item \label{SpecList:structures} the data structures,
@@ -487,7 +487,7 @@ The Init for split-order
 \@x{\@s{8.2} \.{\land} map \.{=} [ k \.{\in} PossibleKeys \.{\mapsto} NULL ]}%
 \@pvspace{8.0pt}%
 \end{tlatex}
-\caption{The initial state of the specificaiton}
+\caption{The initial state of the specification}
 \label{fig:SO-init}
 \end{figure}
 \\\\
@@ -627,7 +627,249 @@ Finally, the \textit{Next} action shown in \autoref{fig:SO-next} describes the t
 \\\\
 The \textit{SOFind} operation shown in \autoref{fig:SO-find} corresponds to the find operation in Shalev et al.'s pseudocode and is responsible for updating the map. Because we wish to show that this specification implements the generic hashmap it is necessary to update the set of keys and the map itself at the same time and so a set of auxiliary keys is maintained and only added to the "real" map once a find operation looks for them. Using the "working variables" trick, the specification can be shown to implement the generic hashmap through implication as seen in \autoref{fig:SO-implementation}.
 
-\section{Concurrent Specification}
+\subsection{Concurrent Specification}
+\begin{figure}
+    \begin{tla}
+OperationStates ==
+    (*Set of all possible active operations            *)
+    (*They can be of type insert, delete or bucket\_init*)
+    (*Step denotes the current step of the operation   *)
+    [type: {"insert"}, step : 1..4, key : PossibleKeys, value : PossibleValues]
+        \union 
+    [type: {"delete"}, step : 1..3, key : PossibleKeys]
+        \union 
+    [type: {"bucket_init"}, step : 1..3, bucket : 0..(MaxSize-1)]
+    \end{tla}
+\begin{tlatex}
+\@x{ OperationStates \.{\defeq}}%
+\@x{\@s{16.4}}%
+\@y{%
+ Set of all possible active operations            
+}%
+\@xx{}%
+\@x{\@s{16.4}}%
+\@y{%
+ They can be of type insert, delete or bucket\_init
+}%
+\@xx{}%
+\@x{\@s{16.4}}%
+\@y{%
+ Step denotes the current step of the operation   
+}%
+\@xx{}%
+ \@x{\@s{16.4} [ type \.{:} \{\@w{insert} \} ,\, step \.{:} 1 \.{\dotdot} 4
+ ,\, key \.{:} PossibleKeys ,\, value \.{:} PossibleValues ]}%
+\@x{\@s{28.69} \.{\cup}}%
+ \@x{\@s{16.4} [ type \.{:} \{\@w{delete} \} ,\, step \.{:} 1 \.{\dotdot} 3
+ ,\, key \.{:} PossibleKeys ]}%
+\@x{\@s{28.69} \.{\cup}}%
+ \@x{\@s{16.4} [ type \.{:} \{\@w{bucket\_init} \} ,\, step \.{:} 1
+ \.{\dotdot} 3 ,\, bucket \.{:} 0 \.{\dotdot} ( MaxSize \.{-} 1 ) ]}%
+\end{tlatex}
+    \caption{The operation structures}
+    \label{fig:op-structure}
+\end{figure}
+
+\begin{figure}
+    \begin{tla}
+        (*Begin an insert operation*)
+        Insert(k, v) == activeOps' = activeOps \union {[type|-> {"insert"}, step |-> 1, key |-> k, value |-> v]}           
+        (*Begin a delete operation*)
+        Delete(k) == activeOps' = activeOps \union {[type|-> {"delete"}, step |-> 1, key |-> k]}
+        (*Begin a bucket\_init operation*)
+        BucketInit(b) == activeOps' = activeOps \union {[type|-> {"bucket_init"}, step |-> 1, bucket |-> b]}
+        
+        NextStep(op) == activeOps' = (activeOps \ {op}) \union {[op EXCEPT !["step"] = op.step + 1]}
+        End(op) == activeOps' = activeOps \ {op}
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8}}%
+\@y{%
+ Begin an insert operation
+}%
+\@xx{}%
+ \@x{\@s{32.8} Insert ( k ,\, v ) \.{\defeq} activeOps \.{'} \.{=} activeOps
+ \.{\cup} \{ [ type \.{\mapsto} \{\@w{insert} \} ,\, step \.{\mapsto} 1 ,\,
+ key \.{\mapsto} k ,\, value \.{\mapsto} v ] \}}%
+\@x{\@s{32.8}}%
+\@y{%
+ Begin a delete operation
+}%
+\@xx{}%
+ \@x{\@s{32.8} Delete ( k ) \.{\defeq} activeOps \.{'} \.{=} activeOps
+ \.{\cup} \{ [ type \.{\mapsto} \{\@w{delete} \} ,\, step \.{\mapsto} 1 ,\,
+ key \.{\mapsto} k ] \}}%
+\@x{\@s{32.8}}%
+\@y{%
+ Begin a bucket\_init operation
+}%
+\@xx{}%
+ \@x{\@s{32.8} BucketInit ( b ) \.{\defeq} activeOps \.{'} \.{=} activeOps
+ \.{\cup} \{ [ type \.{\mapsto} \{\@w{bucket\_init} \} ,\, step \.{\mapsto} 1
+ ,\, bucket \.{\mapsto} b ] \}}%
+\@pvspace{8.0pt}%
+ \@x{\@s{32.8} NextStep ( op ) \.{\defeq} activeOps \.{'} \.{=} ( activeOps
+ \.{\,\backslash\,} \{ op \} ) \.{\cup} \{ [ op {\EXCEPT} {\bang} [\@w{step}
+ ] \.{=} op . step \.{+} 1 ] \}}%
+ \@x{\@s{32.8} End ( op ) \.{\defeq} activeOps \.{'} \.{=} activeOps
+ \.{\,\backslash\,} \{ op \}}%
+\end{tlatex}
+    \caption{Starting and stepping through operations}
+    \label{fig:op-progress}
+\end{figure}
+
+\begin{figure}
+    \begin{tla}
+        SONext ==
+        \/  /\ \E k \in PossibleKeys :
+                 \E v \in PossibleValues :
+                    Insert(k, v)
+            /\ UNCHANGED <<buckets, count, list, size>>
+        \/  /\ \E k \in PossibleKeys :
+                Delete(k)
+            /\ UNCHANGED <<buckets, count, list, size>>
+        \/ Insert1
+        \/ Insert2
+        \/ Insert3
+        \/ Insert4
+        \/ Delete1
+        \/ Delete2
+        \/ Delete3
+        \/ BucketInit1
+        \/ BucketInit2
+        \/ BucketInit3
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8} SONext \.{\defeq}}%
+\@x{\@s{32.8} \.{\lor}\@s{4.1} \.{\land} \E\, k \.{\in} PossibleKeys \.{:}}%
+\@x{\@s{45.1} \E\, v \.{\in} PossibleValues \.{:}}%
+\@x{\@s{45.1} Insert ( k ,\, v )}%
+ \@x{\@s{36.89} \.{\land} {\UNCHANGED} {\langle} buckets ,\, count ,\, list
+ ,\, size {\rangle}}%
+\@x{\@s{32.8} \.{\lor}\@s{4.09} \.{\land} \E\, k \.{\in} PossibleKeys \.{:}}%
+\@x{\@s{40.99} Delete ( k )}%
+ \@x{\@s{36.89} \.{\land} {\UNCHANGED} {\langle} buckets ,\, count ,\, list
+ ,\, size {\rangle}}%
+\@x{\@s{32.8} \.{\lor} Insert1}%
+\@x{\@s{32.8} \.{\lor} Insert2}%
+\@x{\@s{32.8} \.{\lor} Insert3}%
+\@x{\@s{32.8} \.{\lor} Insert4}%
+\@x{\@s{32.8} \.{\lor} Delete1}%
+\@x{\@s{32.8} \.{\lor} Delete2}%
+\@x{\@s{32.8} \.{\lor} Delete3}%
+\@x{\@s{32.8} \.{\lor} BucketInit1}%
+\@x{\@s{32.8} \.{\lor} BucketInit2}%
+\@x{\@s{32.8} \.{\lor} BucketInit3}%
+\end{tlatex}
+    \caption{The concurrent Next action}
+    \label{fig:concurrent-next}
+\end{figure}
+
+\begin{figure}
+    \begin{tla}
+(*Steps of a delete operation*)
+Delete1 ==
+    (*Start a bucket_init if necessary*)
+    \E op \in activeOps :
+        /\ op.type = {"delete"}
+        /\ op.step = 1
+        /\ IF buckets[op.key % size] = NULL
+                THEN activeOps' = (activeOps \ {op})
+                                    \union {[op EXCEPT !["step"] = op.step + 1]}
+                                    \union {[type|-> {"bucket_init"}, step |-> 1, bucket |-> op.key % size]}
+                ELSE NextStep(op)
+        /\ UNCHANGED <<list, buckets, size, count>>
+
+Delete2 ==
+    (*If the key is not there, end operation. Else, remove it*)
+    \E op \in activeOps :
+        /\ op.type = {"delete"}
+        /\ op.step = 2
+        /\  IF list[SORegularKey(op.key)] = NULL
+                THEN /\ End(op)
+                     /\ UNCHANGED list
+                ELSE /\ list' = [list EXCEPT ![SORegularKey(op.key)] = NULL]
+                     /\ NextStep(op)
+        /\ UNCHANGED <<buckets, size, count>>        
+
+Delete3 ==
+    (*Decrement count*)
+    \E op \in activeOps :
+        /\ op.type = {"delete"}
+        /\ op.step = 3
+        /\ count' = count - 1
+        /\ End(op)
+        /\ UNCHANGED <<buckets, list, size>>
+    \end{tla}
+\begin{tlatex}
+\@x{}%
+\@y{%
+ Steps of a delete operation
+}%
+\@xx{}%
+\@x{ Delete1 \.{\defeq}}%
+\@x{\@s{16.4}}%
+\@y{%
+ Start a bucket_init if necessary
+}%
+\@xx{}%
+\@x{\@s{16.4} \E\, op \.{\in} activeOps \.{:}}%
+\@x{\@s{20.5} \.{\land} op . type \.{=} \{\@w{delete} \}}%
+\@x{\@s{20.5} \.{\land} op . step \.{=} 1}%
+\@x{\@s{20.5} \.{\land} {\IF} buckets [ op . key \.{\%} size ] \.{=} NULL}%
+ \@x{\@s{28.7} \.{\THEN} activeOps \.{'} \.{=} ( activeOps \.{\,\backslash\,}
+ \{ op \} )}%
+ \@x{\@s{32.8} \.{\cup} \{ [ op {\EXCEPT} {\bang} [\@w{step} ] \.{=} op . step
+ \.{+} 1 ] \}}%
+ \@x{\@s{32.8} \.{\cup} \{ [ type \.{\mapsto} \{\@w{bucket\_init} \} ,\, step
+ \.{\mapsto} 1 ,\, bucket \.{\mapsto} op . key \.{\%} size ] \}}%
+\@x{\@s{28.7} \.{\ELSE} NextStep ( op )}%
+ \@x{\@s{20.5} \.{\land} {\UNCHANGED} {\langle} list ,\, buckets ,\, size ,\,
+ count {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ Delete2 \.{\defeq}}%
+\@x{\@s{16.4}}%
+\@y{%
+ If the key is not there, end operation. Else, remove it
+}%
+\@xx{}%
+\@x{\@s{16.4} \E\, op \.{\in} activeOps \.{:}}%
+\@x{\@s{20.5} \.{\land} op . type \.{=} \{\@w{delete} \}}%
+\@x{\@s{20.5} \.{\land} op . step \.{=} 2}%
+ \@x{\@s{20.5} \.{\land}\@s{4.1} {\IF} list [ SORegularKey ( op . key ) ]
+ \.{=} NULL}%
+\@x{\@s{28.7} \.{\THEN} \.{\land} End ( op )}%
+\@x{\@s{28.7} \.{\land} {\UNCHANGED} list}%
+ \@x{\@s{28.7} \.{\ELSE} \.{\land} list \.{'} \.{=} [ list {\EXCEPT} {\bang} [
+ SORegularKey ( op . key ) ] \.{=} NULL ]}%
+\@x{\@s{28.7} \.{\land} NextStep ( op )}%
+ \@x{\@s{20.5} \.{\land} {\UNCHANGED} {\langle} buckets ,\, size ,\, count
+ {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ Delete3 \.{\defeq}}%
+\@x{\@s{16.4}}%
+\@y{%
+ Decrement count
+}%
+\@xx{}%
+\@x{\@s{16.4} \E\, op \.{\in} activeOps \.{:}}%
+\@x{\@s{20.5} \.{\land} op . type \.{=} \{\@w{delete} \}}%
+\@x{\@s{20.5} \.{\land} op . step \.{=} 3}%
+\@x{\@s{20.5} \.{\land} count \.{'} \.{=} count \.{-} 1}%
+\@x{\@s{20.5} \.{\land} End ( op )}%
+ \@x{\@s{20.5} \.{\land} {\UNCHANGED} {\langle} buckets ,\, list ,\, size
+ {\rangle}}%
+\end{tlatex}
+    \caption{The steps of a \textit{Delete} operation}
+    \label{fig:op-delete}
+\end{figure}
+The specification described in \autoref{subsec:non-concurrent} describes the working of the split-order structure. However, it is not useful for proving the correctness of the structure in a concurrent setting. This is because its structure presupposes the linearizability of its operations by making them action statements. This means each state transition consists of a complete operation, rather than a single instruction.
+\\\\
+To specify concurrent working, a more granular specification is needed. In a complete description each step would be a single machine instruction, but this is both infeasible and counterproductive as such a specification is no more useful for verification than the program itself.
+\\\\
+Instead, we identify the steps in the each operation that change the shared state of the system and make those the steps of our specification. This results in each operation (\textit{Insert, Remove}, and \textit{Bucket Init}) being split into several steps. We then maintain a set of active operations of the form shown in \autoref{fig:op-structure} and step through them as shown in \autoref{fig:op-progress}. The result is the next-step action shown in \autoref{fig:concurrent-next}. This disjunction specifies that each next step can either start an insert or remove operation, or perform a single step in an active operation.
+\\\\
+To show the structure of a single operation in the concurrent specification, we will look at \textit{Delete} (\autoref{fig:op-delete}). \textit{Delete}1 checks if the relevant bucket is initialized and starts a bucket\_init operation if it is not. Because starting a new operation and advancing the current operation both modify the state of \textit{activeOps}, a union of both changes is needed. Also note that this step is enabled iff there exists an operation with type "delete" and step 1 in the set of active operations. \textit{Delete}2 removes a node from the list. This step is assumed to be atomic by our assumption that an atomic list implementation is available. Finally \textit{Delete}3 decrements count. Note that the previous step did not advance if a node was not removed, so the decrement step will always be taken if a delete operation has reached step 3.
 
 \chapter{Results}\label{ch:results}
 \section{Discussion}\label{sec:discussion}
@@ -1083,4 +1325,3 @@ Split-order implements hashmap
 \@x{\@s{32.8}}\bottombar\@xx{}%
 \end{tlatex}
 \end{document}
-nt}
