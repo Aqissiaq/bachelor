@@ -1,8 +1,8 @@
----------------------------- MODULE SOConcurrent ----------------------------
+    ---------------------------- MODULE SOConcurrent ----------------------------
 
-EXTENDS Integers, Sequences
+EXTENDS Integers, Sequences, Bags
 
-CONSTANTS NULL, PossibleKeys, PossibleValues, LoadFactor, MaxSize
+CONSTANTS NULL, PossibleKeys, PossibleValues, LoadFactor, MaxSize, MaxActiveOps
 
 VARIABLES list, buckets, size, count, activeOps
 
@@ -76,53 +76,51 @@ Parent(b) ==    CASE b = 0 -> 0
                      [] b = 15 -> 7
 
 
-SOInit ==   /\ activeOps = {}
-            /\ list = [n \in 0..255 |-> IF n = 0 THEN SODummyKey(0) ELSE NULL]
-            /\ buckets = [m \in PossibleKeys |-> IF m = 0 THEN SODummyKey(0) ELSE NULL]
+SOInit ==   /\ activeOps = EmptyBag
+            /\ list = [n \in 0..16 |-> IF n = 0 THEN SODummyKey(0) ELSE NULL]
+            /\ buckets = [m \in 0..(MaxSize-1) |-> IF m = 0 THEN SODummyKey(0) ELSE NULL]
             /\ size = 1
             /\ count = 0
-
+            
 (*Begin an insert operation*)
-Insert(k, v) == activeOps' = activeOps \union {[type|-> {"insert"}, step |-> 1, key |-> k, value |-> v]}           
+Insert(k, v) == activeOps' = activeOps (+) SetToBag({[type|-> "insert", step |-> 1, key |-> k, value |-> v]})
 (*Begin a delete operation*)
-Delete(k) == activeOps' = activeOps \union {[type|-> {"delete"}, step |-> 1, key |-> k]}
+Delete(k) == activeOps' = activeOps (+) SetToBag({[type|-> "delete", step |-> 1, key |-> k]})
 (*Begin a bucket_init operation*)
-BucketInit(b) == activeOps' = activeOps \union {[type|-> {"bucket_init"}, step |-> 1, bucket |-> b]}
+BucketInit(b) == activeOps' = activeOps (+) SetToBag({[type|-> "bucket_init", step |-> 1, bucket |-> b]})
 
-NextStep(op) == activeOps' = (activeOps \ {op}) \union {[op EXCEPT !["step"] = op.step + 1]}
-End(op) == activeOps' = activeOps \ {op}
+NextStep(op) == activeOps' = (activeOps (-) SetToBag({op})) (+) SetToBag({[op EXCEPT !["step"] = op.step + 1]})
+End(op) == activeOps' = activeOps (-) SetToBag({op})
 Min(a, b) == IF a > b THEN b ELSE a
 
 (*Steps of an insert operation*)
 Insert1 == 
     (*Start a bucket_init if necessary*)
-    \E op \in activeOps :
-        /\ op.type = {"insert"}
+    \E op \in BagToSet(activeOps) :
+        /\ op.type = "insert"
         /\ op.step = 1
         /\ IF buckets[op.key % size] = NULL
             (*Kind of ugly because nextstep and "begin bucket_init" both modify the state of activeOps and need to be combined*)
-            THEN activeOps' = (activeOps \ {op})
-                                \union {[op EXCEPT !["step"] = op.step + 1]}
-                                \union {[type |-> {"bucket_init"}, step |-> 1, bucket |-> op.key % size]}
+            THEN activeOps' = (activeOps (-) SetToBag({op}))
+                                    (+) SetToBag({[op EXCEPT !["step"] = op.step + 1]})
+                                    (+) SetToBag({[type |-> "bucket_init", step |-> 1, bucket |-> op.key % size]})
             ELSE NextStep(op)
         /\ UNCHANGED <<list, buckets, size, count>>
 
 Insert2 ==
     (*If key is already in list, end operation. Else insert in list*)
-    \E op \in activeOps :
-        /\ op.type = {"insert"}
+    \E  op \in BagToSet(activeOps) :
+        /\ op.type = "insert"
         /\ op.step = 2
         /\  IF list[SORegularKey(op.key)] = NULL
-                THEN /\ list' = [list EXCEPT ![SORegularKey(op.key)] = op.value]
-                     /\ NextStep(op) 
-                ELSE /\ End(op)
-                     /\ UNCHANGED list
+                THEN list' = [list EXCEPT ![SORegularKey(op.key)] = op.value] /\ NextStep(op) 
+                ELSE End(op) /\ UNCHANGED list
         /\ UNCHANGED <<buckets, size, count>>
 
 Insert3 ==
     (*Increment count*)
-    \E op \in activeOps :
-        /\ op.type = {"insert"}
+    \E  op \in BagToSet(activeOps) :
+        /\ op.type = "insert"
         /\ op.step = 3
         /\ count' = count +1
         /\ NextStep(op)
@@ -130,8 +128,8 @@ Insert3 ==
 
 Insert4 ==
     (*Change size if loadfactor is exceeded and end insert*)
-    \E op \in activeOps :
-    /\ op.type = {"insert"}
+    \E  op \in BagToSet(activeOps) :
+    /\ op.type = "insert"
     /\ op.step = 4
     /\ IF count \div size > LoadFactor THEN size' = Min(2 * size, MaxSize) ELSE UNCHANGED size
     /\ End(op)
@@ -140,20 +138,20 @@ Insert4 ==
 (*Steps of a delete operation*)
 Delete1 ==
     (*Start a bucket_init if necessary*)
-    \E op \in activeOps :
-        /\ op.type = {"delete"}
+    \E  op \in BagToSet(activeOps) :
+        /\ op.type = "delete"
         /\ op.step = 1
         /\ IF buckets[op.key % size] = NULL
-                THEN activeOps' = (activeOps \ {op})
-                                    \union {[op EXCEPT !["step"] = op.step + 1]}
-                                    \union {[type|-> {"bucket_init"}, step |-> 1, bucket |-> op.key % size]}
+                THEN activeOps' = (activeOps (-) SetToBag({op}))
+                                        (+) SetToBag({[op EXCEPT !["step"] = op.step + 1]})
+                                        (+) SetToBag({[type|-> "bucket_init", step |-> 1, bucket |-> op.key % size]})
                 ELSE NextStep(op)
         /\ UNCHANGED <<list, buckets, size, count>>
 
 Delete2 ==
     (*If the key is not there, end operation. Else, remove it*)
-    \E op \in activeOps :
-        /\ op.type = {"delete"}
+    \E  op \in BagToSet(activeOps) :
+        /\ op.type = "delete"
         /\ op.step = 2
         /\  IF list[SORegularKey(op.key)] = NULL
                 THEN /\ End(op)
@@ -164,8 +162,8 @@ Delete2 ==
 
 Delete3 ==
     (*Decrement count*)
-    \E op \in activeOps :
-        /\ op.type = {"delete"}
+    \E  op \in BagToSet(activeOps) :
+        /\ op.type = "delete"
         /\ op.step = 3
         /\ count' = count - 1
         /\ End(op)
@@ -174,8 +172,8 @@ Delete3 ==
 (*Steps of a bucket init*)
 BucketInit1 ==
     (*Start a bucket_init on parent bucket if needed*)
-    \E op \in activeOps :
-        /\ op.type = {"bucket_init"}
+    \E  op \in BagToSet(activeOps) :
+        /\ op.type = "bucket_init"
         /\ op.step = 1
         /\ IF buckets[Parent(op.bucket)] = NULL
                 THEN BucketInit(Parent(op.bucket))
@@ -185,8 +183,8 @@ BucketInit1 ==
 
 BucketInit2 ==
     (*If there is no dummy node in the list, insert it*)
-    \E op \in activeOps :activeOps' = activeOps \ {op}
-        /\ op.type = {"bucket_init"}
+    \E  op \in BagToSet(activeOps) :
+        /\ op.type = "bucket_init"
         /\ op.step = 2
         /\  IF list[SODummyKey(op.bucket)] = NULL
                 THEN list' = [list EXCEPT ![SODummyKey(op.bucket)] = op.bucket]
@@ -196,8 +194,8 @@ BucketInit2 ==
 
 BucketInit3 ==
     (*Point bucket to dummy node*)
-    \E op \in activeOps :
-        /\ op.type = {"bucket_init"}
+    \E  op \in BagToSet(activeOps) :
+        /\ op.type = "bucket_init"
         /\ op.step = 3
         /\ buckets' = [buckets EXCEPT ![op.bucket] = SODummyKey(op.bucket)]
         /\ End(op)
@@ -207,9 +205,11 @@ SONext ==
     \/  /\ \E k \in PossibleKeys :
              \E v \in PossibleValues :
                 Insert(k, v)
+        /\ BagCardinality(activeOps) < MaxActiveOps
         /\ UNCHANGED <<buckets, count, list, size>>
     \/  /\ \E k \in PossibleKeys :
             Delete(k)
+        /\ BagCardinality(activeOps) < MaxActiveOps
         /\ UNCHANGED <<buckets, count, list, size>>
     \/ Insert1
     \/ Insert2
@@ -222,16 +222,63 @@ SONext ==
     \/ BucketInit2
     \/ BucketInit3
 
+
 BucketsInitialized ==
-    \A i \in 0..size :
+    \A i \in 0..(size-1) :
         \/ buckets[i] = NULL
         \/ buckets[i] = SODummyKey(i) /\ list[SODummyKey(i)] = i
 
 OperationsOK ==
-    \A op \in activeOps :
+    \A  op \in BagToSet(activeOps) :
         op \in OperationStates
+        
+(*An insert with key not in map will succeed*)
+InsertSucceeds ==
+    \A op \in OperationStates :
+        IF op.type = "insert"
+        (*This test is needed to avoid checking fields that do not exist in other types of operations*)
+        THEN
+            /\ op \in BagToSet(activeOps)
+            /\ op.step = 1
+            /\ list[SORegularKey(op.key)] = NULL
+         => <>(list[SORegularKey(op.key)] = op.value)
+        ELSE TRUE
+        
+(*An insert with key in map will not reach step 3*)
+InsertFails ==
+    \A op \in OperationStates :
+        IF op.type = "insert"
+        THEN
+            /\ op \in BagToSet(activeOps)
+            /\ op.step = 1
+            /\ list[SORegularKey(op.key)] /= NULL
+         => []<>(~([op EXCEPT !["step"] = 3] \in BagToSet(activeOps)))
+        ELSE TRUE
+        
+(*A delete with key in map will succeed*)
+DeleteSucceeds ==
+    \A op \in OperationStates :
+        IF op.type = "delete"
+        THEN
+            /\ op \in BagToSet(activeOps)
+            /\ op.step = 1
+            /\ list[SORegularKey(op.key)] /= NULL
+        => <>(list[SORegularKey(op.key)] = NULL)
+        ELSE TRUE
+        
+(*A delete with key not in map will not reach step 3*)
+DeleteFails ==
+    \A op \in OperationStates :
+            IF op.type = "delete"
+            THEN
+                /\ op \in BagToSet(activeOps)
+                /\ op.step = 1
+                /\ list[SORegularKey(op.key)] = NULL
+            => []<>(~([op EXCEPT !["step"] = 3] \in BagToSet(activeOps)))
+            ELSE TRUE
+                
 
 =============================================================================
 \* Modification History
-\* Last modified Tue May 05 17:01:16 CEST 2020 by aqissiaq
+\* Last modified Wed May 13 13:30:47 CEST 2020 by aqissiaq
 \* Created Sat Apr 18 15:31:35 CEST 2020 by aqissiaq
