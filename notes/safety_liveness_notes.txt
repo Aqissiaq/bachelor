@@ -1,0 +1,30 @@
+Notes on: https://lamport.azurewebsites.net/tla/safety-liveness.pdf
+
+values : sets
+states : assignments of values to variables
+behaviors : sequences of states
+property : behavior -> boolean
+
+prefix of behavior b : the first n states for some n > 0
+safety property : property is true on a behavior iff it is true on all prefixes
+    Init /\ []Next is a safety property. "Init and always next"
+    <>(x=3) is not. "Eventually x will equal 3"
+
+extension : b is an extension of s iff s is a prefix of b
+liveness property : P is a liveness property iff every finite sequence can be extended to one that satisfies P
+    <>(x=3) is a liveness property because any sequence can be extended by s' = 3
+
+ANY property can be written as the conjunction of a safety property and a liveness property
+Machine closed : safety property S and liveness property L are machine closed iff every finite sequence satisfying S can be extended to satisfy S/\L
+
+A fairness property is such a machine closed pair.
+
+action formula : a predicate on steps
+ENABLED A : TRUE on u iff \E w s.t u -> w satisfies A
+<<A>>_v : A /\ (v' /= v) (that is, "this is not a stuttering step with respect to v)
+suffix of behavior b : opposite of a prefix
+WF_v(A):
+    any suffix of b whose states all satisfy ENABLED <<A>>_v contains an <<A>>_v step => "if <<A>>_v is always enabled, it will eventually happen
+
+SF_v(A):
+    same as WF, but for infinite sequences
