@@ -176,9 +176,10 @@ BucketInit1 ==
         /\ op.type = "bucket_init"
         /\ op.step = 1
         /\ IF buckets[Parent(op.bucket)] = NULL
-                THEN BucketInit(Parent(op.bucket))
-                ELSE TRUE
-        /\ NextStep(op)
+                THEN activeOps' = (activeOps (-) SetToBag({op}))
+                                        (+) SetToBag({[op EXCEPT !["step"] = op.step + 1]})
+                                        (+) SetToBag({[type|-> "bucket_init", step |-> 1, bucket |-> Parent(op.bucket)]})
+                ELSE NextStep(op)
         /\ UNCHANGED <<buckets, size, count, list>>
 
 BucketInit2 ==
@@ -280,5 +281,5 @@ DeleteFails ==
 
 =============================================================================
 \* Modification History
-\* Last modified Wed May 13 13:30:47 CEST 2020 by aqissiaq
+\* Last modified Thu May 14 12:36:45 CEST 2020 by aqissiaq
 \* Created Sat Apr 18 15:31:35 CEST 2020 by aqissiaq
