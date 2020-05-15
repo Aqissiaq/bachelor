@@ -973,21 +973,53 @@ DeleteSucceeds ==
 Tests were run with version 2.15 of the TLC model checker on a Intel(R) Core i5-8250U CPU with 8~GiB of memory and 250~GiB of hard drive space running Ubuntu 18.04.
 \section{Results}
 \subsection{Non-concurrent specification}
-[Need to rerun the coarse specification model check (oops)]
-
-\subsection{Concurrent Specification}
-
-\begin{tabular}{ |c|c|c|c||c|c|c| }
+Testing implementation of HashmapSpec:\\
+\begin{tabular}{ |c|c||c|c|c|c| }
     \hline
-    Invariant & Keys & Values & Concurrent Ops & Distinct states & Time & Error \\
+    Keys & Values & Diameter & Distinct & Time & Error\\
+         &        &          & States   & (hh:mm:ss)&\\
     \hline
-    \textit{InsertSucceeds} & 4 & 2 & 2 & 1,105,192 & 00:02:09 &\\
-                            & 4 & 3 & 2 & 902,996   & 00:03:14 & OutOfMemoryError\\
-
+    2 & 4  & 10 & 2,523      & 00:00:01 &\\
+    2 & 8  & 10 & 23,763     & 00:00:08 &\\
+    2 & 16 & 10 & 279,075    & 00:01:02 &\\
+    4 & 16 & 10 & 84,587,043 & 02:54:11 & No space left on device\\
     \hline
 \end{tabular}
 
-Lessons learned so far
+
+\subsection{Concurrent Specification}
+
+\begin{tabular}{ |c|c|c|c||c|c|c|c| }
+    \hline
+    Invariant & Keys & Values & Concurrent & Diameter & Distinct & Time & Error\\
+              &      &        & Ops        &          & States   & (hh:mm:ss)\\
+    \hline
+    \textit{InsertSucceeds} & 4 & 2 & 2 & 62 & 1,627,390 & 00:02:15 &\\
+                            & 4 & 3 & 2 & 27 & 1,426,888 & 00:33:30 & Out of memory\\
+    \hline
+    \textit{DeleteSucceeds} & 4 & 2 & 2 & 62 & 1,627,390 & 00:00:45 &\\
+                            & 4 & 3 & 2 & 39 & 6,067,795 & 00:30:30 & GC limit exceeded\\
+    \hline
+\textit{BucketsInitialized} & 4 & 2 & 2 & 62 & 1,627,390 & 00:00:22 &\\
+                            & 4 & 3 & 2 & 62 & 8,368,282 & 00:01:39 &\\
+                            & 4 & 4 & 2 & 62 & 29,973,646& 00:06:10 &\\
+                            & 4 & 5 & 2 & 62 & 85,419,916& 00:18:41 &\\
+                            & 4 & 2 & 3 & 75 & 61,353,460& 00:13:59 &\\
+                            & 4 & 2 & 4 & 57 &120,175,837& 00:26:49 &???\\
+    \hline
+\end{tabular}
+\\
+Notes
+\begin{itemize}
+    \item state space explosion from 2 to 3 values is immense
+    \item BucketsInitialized with 4 concurrent ops crashed my laptop
+    \item Final InsertSucceeds spent 2/3 of the time on diameter 27
+    \item Memory runs out later with DeleteSucceeds, probably because delete takes fewer steps so traces are shorter
+    \item smaller tests have same diameter and state number, which is expected (good)
+    \item DeleteSucceeds triggers GC faul instead of out-of-memory. Might mean less of the memory is reclaimable?
+\end{itemize}
+
+Lessons learned
 \begin{itemize}
     \item state space explosion is \textbf{real}
     \item liveness properties tend to quickly exceed Java's GC limit
