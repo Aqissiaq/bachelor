@@ -247,12 +247,12 @@ We present two versions of the specification at two levels of granularity. The f
 
 \section{Goal}\label{sec:spec-goals}
 The purpose of our specification is to verify the claims about correctness made by Shalev et al. Because TLA+ is designed for checking liveness and safety properties~\cite{Lund2019} we will not check claims about the performance of the implementation. This leaves 4 invariants:
-\begin{itemize}
+\begin{enumerate}
     \item the list beginning at bucket 0 is always sorted
     \item if a bucket is initialized, then it points to a dummy node which is in the list beginning at bucket 0
     \item if a key $k$ is in the map, then \texttt{insert(k)} fails. Otherwise $k$ is added to the map
     \item if a key $k$ is in the map, then \texttt{remove(k)} removes it from the map. Otherwise it fails.
-\end{itemize}
+\end{enumerate}
 The non-concurrent specification demonstrates correctness by implementing a generic hashmap specification which describes corerct behavior, while the concurrent specification looks directly at the above invariants.
 Additionally we will check \textit{type safety}: at every point of execution, all keys and values are members of predefined key- and value-sets, respectively.
 
@@ -873,24 +873,40 @@ To show the structure of a single operation in the concurrent specification, we 
 
 \chapter{Results}\label{ch:results}
 \section{Method}
-To demonstrate the invariants claimed by Shalev et al.~\cite{Shalev2006} we use the TLC model checker to test the specifications outlined in \autoref{ch:specification}. The first specification (\autoref{subsec:non-concurrent}) was tested by setting the implication
-\begin{tla}
-    SOSpec => HashmapSpec
-\end{tla}
-\begin{tlatex}
-\@x{\@s{16.4} SOSpec \.{\implies} HashmapSpec}%
-\end{tlatex}
-as a property of the model, thus showing that SplitOrder implements the generic hashmap specification.
+To demonstrate the invariants claimed by Shalev et al.~\cite{Shalev2006} we use the TLC model checker to test the specifications outlined in \autoref{sec:spec-goals}. The first specification (\autoref{subsec:non-concurrent}) was tested by setting \textit{HashmapSpec} as a property of the model, thus showing that SplitOrder implements the generic hashmap specification.
 \\\\
-\textit{SOConcurrent} is more granular than the abstract specification which makes it difficult to demonstrate an implication. Instead three of the four claimed invariants were written as predicates in TLA (\autoref{fig:invariants}). (The last invariant is the sorted order of the list, which is trivially true due to how the list is represented in TLA.) The first invariant is a claim on each state and can be checked straighforwardly. The remaining two, split into four in TLA, are invariants on behaviors and make use of the temporal operator $\Box$ meaning "always". Additionally, these invariants are written in terms of the constant set of all possible operation states because TLC cannot check liveness properties that include existential quantifiers ($\E$ and $\A$) over variables.
-\begin{figure}
+\textit{SOConcurrent} is more granular than the abstract specification which makes it difficult to demonstrate implementation. Instead the invariants were written as predicates in TLA such that they can be checked by the TLC model checker. The following paragraphs describe these invariants in turn.
+\\\\
+The first invariant states that the list beginning at bucket 0 is always sorted. Because our list is specified as a function from positions to values, this is trivialy true for the specification.
+\\\\
+The second invariant asserts that if a bucket is initialized, then it points to a dummy node in the list. This is captured by \textit{BucketsInitialized} (\autoref{fig:invariant2}) which asserts each bucket is either NULL, or points to an initialized node in the list. This is an invariant on a single state and can be checked straightforwardly.
+\begin{figure}[h]
     \begin{tla}
-(*Each bucket is either unitialized or points to a node with the dummy key*)
-BucketsInitialized ==
-    \A i \in 0..(size-1) :
-        \/ buckets[i] = NULL
-        \/ buckets[i] = SODummyKey(i) /\ list[SODummyKey(i)] = i
-
+        (*Each bucket is either unitialized or points to a node with the dummy key*)
+        BucketsInitialized ==
+            \A i \in 0..(size-1) :
+                \/ buckets[i] = NULL
+                \/ buckets[i] = SODummyKey(i) /\ list[SODummyKey(i)] = i
+    \end{tla}
+\begin{tlatex}
+\@x{\@s{32.8}}%
+\@y{%
+ Each bucket is either unitialized or points to a node with the dummy key
+}%
+\@xx{}%
+\@x{\@s{32.8} BucketsInitialized \.{\defeq}}%
+\@x{\@s{49.19} \A\, i \.{\in} 0 \.{\dotdot} ( size \.{-} 1 ) \.{:}}%
+\@x{\@s{53.29} \.{\lor} buckets [ i ] \.{=} NULL}%
+ \@x{\@s{53.29} \.{\lor} buckets [ i ] \.{=} SODummyKey ( i ) \.{\land} list [
+ SODummyKey ( i ) ] \.{=} i}%
+\end{tlatex}
+    \caption{Invariant 2 as a TLA predicate}
+    \label{fig:invariant2}
+\end{figure}
+\\\\
+Invariant 3 and 4 are both statements about a behavior, rather than a state. This makes them liveness properties and therefore more difficult to check. \Autoref{fig:invariants} shows half of each invariant, namely that \textit{Insert(k)} succeeds if $k$ is not present and \textit{Delete(k)} succeeds if $k$ is present. To do this they make use of the $\Diamond$ operator meaning "eventually" to claim "if an insert is initiated and the key is not in the map, then eventually the value will be inserted", and the opposite for \textit{Delete}. Also note that both properties are written in terms of the constant set of all possible operation states because TLC cannot check liveness properties which include existential qualifiers ($\E$ and $\A$) over variables.
+\begin{figure}[h]
+    \begin{tla}
 (*An insert with key not in map will succeed*)
 InsertSucceeds ==
     \A op \in OperationStates :
@@ -916,17 +932,6 @@ DeleteSucceeds ==
         
     \end{tla}
 \begin{tlatex}
-\@x{}%
-\@y{%
- Each bucket is either unitialized or points to a node with the dummy key
-}%
-\@xx{}%
-\@x{ BucketsInitialized \.{\defeq}}%
-\@x{\@s{16.4} \A\, i \.{\in} 0 \.{\dotdot} ( size \.{-} 1 ) \.{:}}%
-\@x{\@s{20.5} \.{\lor} buckets [ i ] \.{=} NULL}%
- \@x{\@s{20.5} \.{\lor} buckets [ i ] \.{=} SODummyKey ( i ) \.{\land} list [
- SODummyKey ( i ) ] \.{=} i}%
-\@pvspace{8.0pt}%
 \@x{}%
 \@y{%
  An insert with key not in map will succeed
@@ -968,62 +973,207 @@ DeleteSucceeds ==
 \end{tlatex}
     \caption{The claimed invariants as TLA predicates}
     \label{fig:invariants}
-\end{figure}}
+\end{figure}
+\\\\
+The second halves of invariant 3 and 4 (\autoref{fig:fail-invariants}) introduce another complication. To show that an operation fails, it is necessary to differentiate them, so that we can make claims about the failure of a specific operation. The differentiation is done by introducing an additional ID element in each operation. Additionally the properties make use of the $\Box$ operator meaning "always" to claim "if an insert operation is initiated and the key is already in the map, that operation never reaches step 3".
+\begin{figure}[h]
+    \begin{tla}
+(*An insert with key in map will not reach step 3*)
+InsertFails ==
+    \A op \in OperationStates :
+        IF op.type = "insert"
+        THEN
+            /\ op \in (activeOps)
+            /\ op.step = 1
+            /\ list[SORegularKey(op.key)] /= NULL
+         => <>[](~([op EXCEPT !["step"] = 3] \in (activeOps)))
+        ELSE TRUE
+
+(*A delete with key not in map will not reach step 3*)
+DeleteFails ==
+    \A op \in OperationStates :
+            IF op.type = "delete"
+            THEN
+                /\ op \in (activeOps)
+                /\ op.step = 1
+                /\ list[SORegularKey(op.key)] = NULL
+            => <>[](~([op EXCEPT !["step"] = 3] \in (activeOps)))
+            ELSE TRUE
+
+OperationStates ==
+(*Set of all possible active operations            *)
+(*They can be of type insert, delete or bucket_init*)
+(*Step denotes the current step of the operation   *)
+[type: {"insert"}, step : 1..4, key : PossibleKeys, value : PossibleValues, id : 0..MaxID]
+    \union 
+[type: {"delete"}, step : 1..3, key : PossibleKeys, id : 0..MaxID]
+    \union
+[type: {"bucket_init"}, step : 1..3, bucket : 0..(MaxSize-1), id : 0..MaxID]
+    \end{tla}
+\begin{tlatex}
+\@x{}%
+\@y{%
+ An insert with key in map will not reach step 3
+}%
+\@xx{}%
+\@x{ InsertFails \.{\defeq}}%
+\@x{\@s{16.4} \A\, op \.{\in} OperationStates \.{:}}%
+\@x{\@s{20.5} {\IF} op . type \.{=}\@w{insert}}%
+\@x{\@s{20.5} \.{\THEN}}%
+\@x{\@s{36.9} \.{\land} op \.{\in} ( activeOps )}%
+\@x{\@s{36.9} \.{\land} op . step \.{=} 1}%
+\@x{\@s{36.9} \.{\land} list [ SORegularKey ( op . key ) ] \.{\neq} NULL}%
+ \@x{\@s{24.6} \.{\implies}\@s{12.30} {\Diamond} {\Box} ( {\lnot} ( [ op
+ {\EXCEPT} {\bang} [\@w{step} ] \.{=} 3 ] \.{\in} ( activeOps ) ) )}%
+\@x{\@s{20.5} \.{\ELSE} {\TRUE}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{%
+ A delete with key not in map will not reach step 3
+}%
+\@xx{}%
+\@x{ DeleteFails \.{\defeq}}%
+\@x{\@s{16.4} \A\, op \.{\in} OperationStates \.{:}}%
+\@x{\@s{24.59} {\IF} op . type \.{=}\@w{delete}}%
+\@x{\@s{24.59} \.{\THEN}}%
+\@x{\@s{41.0} \.{\land} op \.{\in} ( activeOps )}%
+\@x{\@s{41.0} \.{\land} op . step \.{=} 1}%
+\@x{\@s{41.0} \.{\land} list [ SORegularKey ( op . key ) ] \.{=} NULL}%
+ \@x{\@s{24.59} \.{\implies} {\Diamond} {\Box} ( {\lnot} ( [ op {\EXCEPT}
+ {\bang} [\@w{step} ] \.{=} 3 ] \.{\in} ( activeOps ) ) )}%
+\@x{\@s{24.59} \.{\ELSE} {\TRUE}}%
+\@pvspace{8.0pt}%
+\@x{ OperationStates \.{\defeq}}%
+\@x{}%
+\@y{%
+ Set of all possible active operations            
+}%
+\@xx{}%
+\@x{}%
+\@y{%
+ They can be of type insert, delete or bucket_init
+}%
+\@xx{}%
+\@x{}%
+\@y{%
+ Step denotes the current step of the operation   
+}%
+\@xx{}%
+ \@x{ [ type \.{:} \{\@w{insert} \} ,\, step \.{:} 1 \.{\dotdot} 4 ,\, key
+ \.{:} PossibleKeys ,\, value \.{:} PossibleValues ,\, id \.{:} 0 \.{\dotdot}
+ MaxID ]}%
+\@x{\@s{12.29} \.{\cup}}%
+ \@x{ [ type \.{:} \{\@w{delete} \} ,\, step \.{:} 1 \.{\dotdot} 3 ,\, key
+ \.{:} PossibleKeys ,\, id \.{:} 0 \.{\dotdot} MaxID ]}%
+\@x{\@s{12.29} \.{\cup}}%
+ \@x{ [ type \.{:} \{\@w{bucket\_init} \} ,\, step \.{:} 1 \.{\dotdot} 3 ,\,
+ bucket \.{:} 0 \.{\dotdot} ( MaxSize \.{-} 1 ) ,\, id \.{:} 0 \.{\dotdot}
+ MaxID ]}%
+\end{tlatex}
+    \caption{The failure invariants as TLA properties}
+    \label{fig:fail-invariants}
+\end{figure}
+\\\\
+Having formalized these invariants we are left with one safety property and four liveness properties, as well as the non-concurrent specification.
+
 \section{Technical Details}
-Tests were run with version 2.15 of the TLC model checker on a Intel(R) Core i5-8250U CPU with 8~GiB of memory and 250~GiB of hard drive space running Ubuntu 18.04.
+Tests were run with version 2.15 of the TLC model checker on a Intel(R) Core i5-8250U CPU with 8~GiB of memory and 250~GiB of hard drive space running Ubuntu 18.04. TLC was set to use 8 worker threads and 6~GiB of memory.
+\\\\
+Unless otherwise noted, the maximum size of the map was equal to the number of possible keys and the load factor was set to half of the maximum size.
+
 \section{Results}
 \subsection{Non-concurrent specification}
-Testing implementation of HashmapSpec:\\
-\begin{tabular}{ |c|c||c|c|c|c| }
-    \hline
-    Keys & Values & Diameter & Distinct & Time & Error\\
-         &        &          & States   & (hh:mm:ss)&\\
-    \hline
-    2 & 4  & 10 & 2,523      & 00:00:01 &\\
-    2 & 8  & 10 & 23,763     & 00:00:08 &\\
-    2 & 16 & 10 & 279,075    & 00:01:02 &\\
-    4 & 16 & 10 & 84,587,043 & 02:54:11 & No space left on device\\
-    \hline
-\end{tabular}
-
+By setting \textit{HashmapSpec} as a property while checking \textit{SplitOrder}, the model checker tests if the latter implements the former. The implementation was checked for increasing sizes of the map, with results reported in \autoref{tab:SplitOrder}.
+\begin{table}[h]
+    \begin{tabular}{ |c|c||c|c|c|c| }
+        \hline
+        Keys & Values & Diameter & Distinct & Time & Error\\
+        &        &          & States   & (hh:mm:ss)&\\
+        \hline
+        2 & 4  & 10 & 2,523      & 00:00:01 &\\
+        2 & 8  & 10 & 23,763     & 00:00:08 &\\
+        2 & 16 & 10 & 279,075    & 00:01:02 &\\
+        4 & 2  & 17 & 39,827     & 00:00:09 &\\
+        4 & 4  & 17 & 1,790,067  & 00:03:44 &\\
+        4 & 16 & 17 & 84,587,043 & 02:54:11 & No space left on device\\
+        \hline
+    \end{tabular}
+\caption{Model checking results for SplitOrder}
+\label{tab:SplitOrder}
+\end{table}
+While the results of \textit{SplitOrder} do not prove much about the structure in a concurrent setting, showing this implementation holds -- at least for maps with up to 4 keys and 8 values -- helps to increase our confidence that is does in fact implement an abstract hashmap structure.
+\\\\
+It is also noteworthy that even this relatively simple specification ran out of hard-drive space (using roughly 150~GB) trying to test a map with 4 possible keys and 16 possible values.
 
 \subsection{Concurrent Specification}
-
-\begin{tabular}{ |c|c|c|c||c|c|c|c| }
-    \hline
-    Invariant & Keys & Values & Concurrent & Diameter & Distinct & Time & Error\\
-              &      &        & Ops        &          & States   & (hh:mm:ss)\\
-    \hline
-    \textit{InsertSucceeds} & 4 & 2 & 2 & 62 & 1,627,390 & 00:02:15 &\\
-                            & 4 & 3 & 2 & 27 & 1,426,888 & 00:33:30 & Out of memory\\
-    \hline
-    \textit{DeleteSucceeds} & 4 & 2 & 2 & 62 & 1,627,390 & 00:00:45 &\\
-                            & 4 & 3 & 2 & 39 & 6,067,795 & 00:30:30 & GC limit exceeded\\
-    \hline
-\textit{BucketsInitialized} & 4 & 2 & 2 & 62 & 1,627,390 & 00:00:22 &\\
-                            & 4 & 3 & 2 & 62 & 8,368,282 & 00:01:39 &\\
-                            & 4 & 4 & 2 & 62 & 29,973,646& 00:06:10 &\\
-                            & 4 & 5 & 2 & 62 & 85,419,916& 00:18:41 &\\
-                            & 4 & 2 & 3 & 75 & 61,353,460& 00:13:59 &\\
-                            & 4 & 2 & 4 & 57 &120,175,837& 00:26:49 &???\\
-    \hline
-\end{tabular}
+In the concurrent specification each invariant was checked in isolation, again increasing the size of the state space incrementally.
+\begin{table}[h]
+    \centering
+    \resizebox{1.2\textwidth}{!}{%        
+        \begin{tabular}{ |c|c|c|c||c|c|c|c| }
+            \hline
+            Invariant & Keys & Values & Concurrent & Diameter & Distinct & Time & Error\\
+            &      &        & Ops        &          & States   & (hh:mm:ss) &\\
+            \hline
+            \textit{InsertSucceeds} & 4 & 2 & 2 & 62 & 1,627,390 & 00:02:15 &\\
+                                    & 4 & 3 & 2 & 27 & 1,426,888 & 00:33:30 & Out of memory\\
+            \hline
+            \textit{DeleteSucceeds} & 4 & 2 & 2 & 62 & 1,627,390 & 00:00:45 &\\
+                                    & 4 & 3 & 2 & 39 & 6,067,795 & 00:30:30 & GC limit exceeded\\
+            \hline
+            \textit{BucketsInitialized} & 4 & 2 & 2 & 62 & 1,627,390 & 00:00:22 &\\
+                                        & 4 & 3 & 2 & 62 & 8,368,282 & 00:01:39 &\\
+                                        & 4 & 4 & 2 & 62 & 29,973,646& 00:06:10 &\\
+                                        & 4 & 5 & 2 & 62 & 85,419,916& 00:18:41 &\\
+                                        & 4 & 2 & 3 & 75 & 61,353,460& 00:13:59 &\\
+                                        & 4 & 2 & 4 & 57 &120,175,837& 00:26:49 &???\\
+            \hline
+        \end{tabular}}
+    \caption{TLC model checking results for SOConcurrent}
+    \label{tab:SOConcurrent}
+\end{table}
 \\
-Notes
-\begin{itemize}
-    \item state space explosion from 2 to 3 values is immense
-    \item BucketsInitialized with 4 concurrent ops crashed my laptop
-    \item Final InsertSucceeds spent 2/3 of the time on diameter 27
-    \item Memory runs out later with DeleteSucceeds, probably because delete takes fewer steps so traces are shorter
-    \item smaller tests have same diameter and state number, which is expected (good)
-    \item DeleteSucceeds triggers GC faul instead of out-of-memory. Might mean less of the memory is reclaimable?
-\end{itemize}
-
+\Autoref{tab:SOConcurrent} shows the results of checking \textit{InsertSucceeds} and \textit{DeleteSucceeds}. Both exhaust the available memory attempting to check a map with 4 possible keys and 3 possible values in approximately 30 minutes. However, both hold for a smaller map with only 2 possible values and this completed in only a few minutes. Also note that \textit{DeleteSucceeds} runs out of memory having explored all most 5 times the number of unique states. The descrepancy in space explored is likely because an insert operation takes 4 steps, while a delete takes only 3 leading to shorter behavior traces for deletes.
+\\\\
+\Autoref{tab:SOConcurrent} also shows the result of checking \textit{BucketsInitialized} on the same specification. Since \textit{BucektsInitialized} is a safety property, memory is not consumed as quickly as with the earlier liveness properties and \textit{BucektsInitialized} was shown to hold for up to 4 keys and 5 values. Additionally this property was checked for larger numbers of concurrent operations. Note that a map with 4 keys and 2 values was fully explored for 2 concurrent operations in 22 seconds, but took 14 minutes with 3 concurrent operations. 4 concurrent operations forced a reboot after 26 minutes.
+%Notes
+%\begin{itemize}
+%        \item state space explosion from 2 to 3 values is immense
+%        \item BucketsInitialized with 4 concurrent ops crashed my laptop
+%        \item Final InsertSucceeds spent 2/3 of the time on diameter 27
+%        \item Memory runs out later with DeleteSucceeds, probably because delete takes fewer steps so traces are shorter
+%        \item smaller tests have same diameter and state number, which is expected (good)
+%        \item DeleteSucceeds triggers GC fault instead of out-of-memory. Might mean less of the memory is reclaimable?
+%\end{itemize}
+\begin{table}
+    \centering
+    \resizebox{1.2\textwidth}{!}{%
+        \begin{tabular}{ |c|c|c|c||c|c|c|c| }
+        \hline
+        Invariant & Keys & Values & Concurrent & Diameter & Distinct & Time      & Error\\
+                  &      &        & Ops        &          & States   & (hh:mm:ss)&\\
+        \hline
+        \textit{BucketsInitialized} & 2 & 2 & 2 & 406 & 59,272,902 & 00:07:08 &\\
+        & 2 & 4 & 2 & 406 & 387,645,300& 00:54:33 &\\
+        & 4 & 2 & 2 & 153 & 665,993,030& 04:22:12 & No signs of converging\\
+        \hline
+        \textit{InsertFails} & 2 & 2 & 2 & 20 & 64,000 & 00:01:07 & Out of heap space\\
+        \hline
+        \textit{DeleteFails} & 2 & 2 & 2 & 25 & 153,370& 00:02:12 & GC overhead limit exceeded\\ 
+        \hline
+    \end{tabular}}
+    \caption{Model checking SOConcurrent with operation IDs}
+    \label{tab:SOConcurrent_ID}
+\end{table}
+\\\\
+For the final two invariants it was necessary to use a slightly different specification in which operations are associated with an ID. Because previous model resulted in a diameter of 62, this model was set up to use a maximum of 62 unique IDs. Differentiating between individual operations leads to a significant increase in both diameter and distinct states because equivalent sets of active operations are now seen as distinct states.
+\\\\
+\Autoref{tab:SOConcurrent_ID} shows the results of checking this model with operation IDs. The dpeth of the state space even for minimal key/value sets makes it infeasible to check liveness properties for this specification.
+\\\\
 Lessons learned
 \begin{itemize}
     \item state space explosion is \textbf{real}
     \item liveness properties tend to quickly exceed Java's GC limit
-    \item it's easy to mis-state what you want to check, and to make subtle spec errors if not careful
 \end{itemize}
 
 \chapter{Discussion}\label{ch:discussion}
@@ -1038,6 +1188,12 @@ The first attempt at writing a specification served as a learning tool for the T
 \\\\
 The attempt to show correctness through implementation also posed difficulties. The idealized hashmap specification proved impossible to directly map to the split-order specification because a \textit{find} operation in may result in a bucket needing to be initialized and thus can not be used directly in a refinement mapping. Instead we introduced a set of auxiliary variables~\cite{Lamport2019a} and maintained an idealized map that was updated in atomic steps to implement the Hashmap specification. The updates loosely correspond to a \textit{find} operation and the correctness of this idealized map does seem to correspond to a correct underlying structure (albeit at an earlier state), but introduces additional complexity to the spec and does not resolve the underlying issue of assumed linearizability.
 \subsection{Implementation Issues aka. "dumb things I did"}
+\begin{itemize}
+    \item it's easy to mis-state what you want to check, and to make subtle spec errors if not careful (e.g my original insert/delete-fails)
+    \item careful with infinities (e.g my infinite set of activeOps)
+    \item sometimes it is hard to tell if a model is doing what you think
+    \item choose step-size early and clearly
+\end{itemize}
 \backmatter
 \printbibliography{}
 \appendix
