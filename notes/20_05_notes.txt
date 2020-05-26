@@ -1,0 +1,10 @@
+tables:
+    turn 90 degrees?
+    shorter table headings
+    scientific notation for large numbers?
+
+discussion stuffs
+    abstraction -> easier to check, but further from actual protocol
+    use of specifications: security, 
+
+definisjoner vs. axiomer vs. teoremer/hypoteser
