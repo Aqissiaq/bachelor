@@ -64,7 +64,8 @@ The specification will be developed in stages of increasing granularity, assumin
 \begin{enumerate}[label={}]
     \item \textbf{\Autoref{ch:background}} discusses the motivation for formal verification and model checking, followed by a description of Temporal Logic in \autoref{sec:TL} and the TLA+ language in \autoref{sec:TLA+}. Finally Shalev et al.'s hashmap design is described in \autoref{sec:hashmap}.
     \item \textbf{\Autoref{ch:specification}} describes the specification of the hashmap in TLA+ and the development of this specification.
-    \item Finally \textbf{\autoref{ch:results}} describes the results of model checking and discusses these in relation to our thesis in \autoref{sec:discussion}. 
+    \item \textbf{\Autoref{ch:results}} describes the method and results of model checking.
+    \item \textbf{\Autoref{ch:discussion}} discusses these results in relation to the thesis, and explores experiences and lessons lerned.
 \end{enumerate}
 
 
@@ -1088,7 +1089,7 @@ By setting \textit{HashmapSpec} as a property while checking \textit{SplitOrder}
     \begin{tabular}{ |c|c||c|c|c|c| }
         \hline
         Keys & Values & Diameter & Distinct & Time & Error\\
-        &        &          & States   & (hh:mm:ss)&\\
+             &        &          & States   & (hh:mm:ss)&\\
         \hline
         2 & 4  & 10 & 2,523      & 00:00:01 &\\
         2 & 8  & 10 & 23,763     & 00:00:08 &\\
@@ -1110,7 +1111,7 @@ It is also noteworthy that even this relatively simple specification ran out of 
 In the concurrent specification each invariant was checked in isolation, again increasing the size of the state space incrementally.
 \begin{table}[h]
     \centering
-    \resizebox{1.2\textwidth}{!}{%        
+    \resizebox{\textwidth}{!}{%        
         \begin{tabular}{ |c|c|c|c||c|c|c|c| }
             \hline
             Invariant & Keys & Values & Concurrent & Diameter & Distinct & Time & Error\\
@@ -1148,7 +1149,7 @@ In the concurrent specification each invariant was checked in isolation, again i
 %\end{itemize}
 \begin{table}
     \centering
-    \resizebox{1.2\textwidth}{!}{%
+    \resizebox{\textwidth}{!}{%
         \begin{tabular}{ |c|c|c|c||c|c|c|c| }
         \hline
         Invariant & Keys & Values & Concurrent & Diameter & Distinct & Time      & Error\\
@@ -1178,8 +1179,25 @@ Lessons learned
 \end{itemize}
 
 \chapter{Discussion}\label{ch:discussion}
-[some sort of introduction]
+In this chapter we first discuss the results of model checking in relation to the thesis: that Shalev et al.'s design is a correct extensible hashmap for concurrent systems and that a model checker can show this.
 \\\\
+The latter half of the chapter is concerned with the experiences of writing and testing a specification, and the lessons learned in the process.
+
+\section{The Results of Model Checking}
+The results of model-checking the non-concurrent specification show that it does implement the higher level abstract specification. While it does not show the correctness of the structure in a concurrent setting, this result gives us reason to believe the overall structure is sound if the operations are linearizable.
+\\\\
+The concurrent model shows similarly promising results for all but the \textit{InsertFails} and \textit{DeleteFails} properties. Due to memory constraints, the model could not be used to check very large state spaces, but the positive results on small subsets give some credence to the correctness of the hashmap.
+\\\\
+In the case of \textit{InsertFails} and \textit{DeleteFails} the need to differentiate individual operations lead to an explosion in the size of the state space so large it became impossible to check these properties. In particular the diameter is a problem because they are both liveness properties and so require storing the very long execution trace.
+\\\\
+problem: how certain can we be that the specification and invariants prove what we mean them to?
+\\\\
+% The conclusion-y part
+The results of model checking do not conclusively prove correctness because they must necessarily be finite in scope. In the case where limited computing power and memory is available, they are definitely finite and indeed quite small. One could argue that correctness on a small sample space implies total correctness, but such an argument can not be based on model checking alone. Again, some human ingenuity is needed. However, successful model checking on a small sample space should increase our confidence in the correctness of the structure.
+\\\\
+Model checking with TLC can be used to exhaustively show the correctness of a structure on a small subset of the sample space. The results on this subset correspond to the properties formally proven by Shalev et al. with the exception of operation failures.
+
+\section{Implementation Issues aka. "dumb things I did"}
 % I learned a lot, but the output does not prove anything about concurrent correctness
 % structure of the spec follows the structure of the implementation, which does not lend itself to logical state transitions.
 % should have made a more conscious decision about step size
@@ -1188,12 +1206,13 @@ Lessons learned
 The first attempt at writing a specification served as a learning tool for the TLA+ language, but did not produce a useful specification for the purpose of proving correctness in a concurrent setting. The structure of the specification was based on the structure of an implementation in that actions correspond to the \textit{insert}, \textit{delete} and \textit{bucket init} functions in Shalev et al.'s pseudocode. Such a structure brings with it the implicit assumption that the functions are linearizable since one action corresponds to one state transition.
 \\\\
 The attempt to show correctness through implementation also posed difficulties. The idealized hashmap specification proved impossible to directly map to the split-order specification because a \textit{find} operation in may result in a bucket needing to be initialized and thus can not be used directly in a refinement mapping. Instead we introduced a set of auxiliary variables~\cite{Lamport2019a} and maintained an idealized map that was updated in atomic steps to implement the Hashmap specification. The updates loosely correspond to a \textit{find} operation and the correctness of this idealized map does seem to correspond to a correct underlying structure (albeit at an earlier state), but introduces additional complexity to the spec and does not resolve the underlying issue of assumed linearizability.
-\subsection{Implementation Issues aka. "dumb things I did"}
+\\
 \begin{itemize}
     \item it's easy to mis-state what you want to check, and to make subtle spec errors if not careful (e.g my original insert/delete-fails)
     \item careful with infinities (e.g my infinite set of activeOps)
     \item sometimes it is hard to tell if a model is doing what you think
     \item choose step-size early and clearly
+    \item consider what we want to show and make sure the spec is capable of showing that. (Uniqueness in fail properties)
 \end{itemize}
 \backmatter
 \printbibliography{}
