@@ -1112,23 +1112,27 @@ In the concurrent specification each invariant was checked in isolation, again i
 \begin{table}[h]
     \centering
     \resizebox{\textwidth}{!}{%        
-        \begin{tabular}{ |c|c|c|c||c|c|c|c| }
+        \begin{tabular}{ |L|c|c|c||c|c|c|p{1cm}| }
             \hline
-            Invariant & Keys & Values & Concurrent & Diameter & Distinct & Time & Error\\
-            &      &        & Ops        &          & States   & (hh:mm:ss) &\\
+            Invariant & Keys & Values & Conc. & Diameter & Distinct & Time & Error\\
+            &      &        & Ops        &          & States   & (mm:ss) &\\
             \hline
-            \textit{InsertSucceeds} & 4 & 2 & 2 & 62 & 1,627,390 & 00:02:15 &\\
-                                    & 4 & 3 & 2 & 27 & 1,426,888 & 00:33:30 & Out of memory\\
+            \textit{InsertSucceeds}& 4 & 2 & 2 & 62 & 1,627,390 & 02:15 &\\
+                                    & 4 & 3 & 2 & 27 & 1,426,888 & 33:30 & Out of memory\\
             \hline
-            \textit{DeleteSucceeds} & 4 & 2 & 2 & 62 & 1,627,390 & 00:00:45 &\\
-                                    & 4 & 3 & 2 & 39 & 6,067,795 & 00:30:30 & GC limit exceeded\\
+            \textit{DeleteSucceeds}& 4 & 2 & 2 & 62 & 1,627,390 & 00:45 &\\
+                                    & 4 & 3 & 2 & 39 & 6,067,795 & 30:30 & GC limit exceeded\\
             \hline
-            \textit{BucketsInitialized} & 4 & 2 & 2 & 62 & 1,627,390 & 00:00:22 &\\
-                                        & 4 & 3 & 2 & 62 & 8,368,282 & 00:01:39 &\\
-                                        & 4 & 4 & 2 & 62 & 29,973,646& 00:06:10 &\\
-                                        & 4 & 5 & 2 & 62 & 85,419,916& 00:18:41 &\\
-                                        & 4 & 2 & 3 & 75 & 61,353,460& 00:13:59 &\\
-                                        & 4 & 2 & 4 & 57 &120,175,837& 00:26:49 &???\\
+            \textit{BucketsInitialized} & 2 & 2 & 2 & 38 & 10,083    & 00:02 &\\
+                                        & 2 & 4 & 2 & 38 & 66,901    & 00:16 &\\
+                                        & 2 & 4 & 8 & 38 & 624,645   & 00:16 &\\
+                                        & 2 & 4 & 16& 38 & 7,371,157 & 01:55 &\\
+                                        & 4 & 2 & 2 & 62 & 1,627,390 & 00:22 &\\
+                                        & 4 & 3 & 2 & 62 & 8,368,282 & 01:39 &\\
+                                        & 4 & 4 & 2 & 62 & 29,973,646& 06:10 &\\
+                                        & 4 & 5 & 2 & 62 & 85,419,916& 18:41 &\\
+                                        & 4 & 2 & 3 & 75 & 61,353,460& 13:59 &\\
+                                        & 4 & 2 & 4 & 57 &120,175,837& 26:49 &???\\
             \hline
         \end{tabular}}
     \caption{TLC model checking results for SOConcurrent}
@@ -1150,14 +1154,14 @@ In the concurrent specification each invariant was checked in isolation, again i
 \begin{table}
     \centering
     \resizebox{\textwidth}{!}{%
-        \begin{tabular}{ |c|c|c|c||c|c|c|c| }
+        \begin{tabular}{ |L|c|c|c||c|c|c|p{1cm}| }
         \hline
-        Invariant & Keys & Values & Concurrent & Diameter & Distinct & Time      & Error\\
-                  &      &        & Ops        &          & States   & (hh:mm:ss)&\\
+        Invariant & Keys & Values & Conc. & Diameter & Distinct & Time      & Error\\
+                  &      &        & Ops   &          & States   & (hh:mm:ss)&\\
         \hline
         \textit{BucketsInitialized} & 2 & 2 & 2 & 406 & 59,272,902 & 00:07:08 &\\
         & 2 & 4 & 2 & 406 & 387,645,300& 00:54:33 &\\
-        & 4 & 2 & 2 & 153 & 665,993,030& 04:22:12 & No signs of converging\\
+        & 4 & 2 & 2 & 153 & 665,993,030& 04:22:12 &\\
         \hline
         \textit{InsertFails} & 2 & 2 & 2 & 20 & 64,000 & 00:01:07 & Out of heap space\\
         \hline
@@ -1190,29 +1194,39 @@ The concurrent model shows similarly promising results for all but the \textit{I
 \\\\
 In the case of \textit{InsertFails} and \textit{DeleteFails} the need to differentiate individual operations lead to an explosion in the size of the state space so large it became impossible to check these properties. In particular the diameter is a problem because they are both liveness properties and so require storing the very long execution trace.
 \\\\
-problem: how certain can we be that the specification and invariants prove what we mean them to?
+One issue with model checking specifications as a way to prove the correctness of programs is the correctness of the model checking. The problem is two-fold: how certain can we be that the model checker does its job correctly; and how certain can we be that the specification is really specifying what we want it to?
+\\\\
+The correctness of the TLC model checker is outside the scope of this text, but the software is open source~\cite{TLAplus} and has been used in industry with success~\cite{Amazon2015, Lamport-Batson2002}.
+\\\\
+On the other hand, the specification is very much within the scope of this project. For a specification to be helpful in proving correctness of a system it is important that it specifies the system accurately, and that the properties checked by the model checker are precisely the properties we wish to show in the system -- both require some human ingenuity. While developing the specification, I often tested properties or invariants in order to check that the specification adhered to expectations. Both positive results -- when invariants believed to be true hold, or invariants believed to be false are shown to be false -- and negative results -- when invariants believed to hold are violated -- helped to further refine the specification or correct errors.
+\\\\
+The final specification behaves as expected along several axes. Type correctness holds across all the tested invariants (though it was not checked along with liveness properties to reduce computational load), the size of the bucket array and the set of active operations both stay within bounds, and additional possible values increases the number of unique states without increasing the depth of the state space while an increase in the number of possible keys increases the depth.
+\\\\
+A surprising feature is the sheer size of the state space. Even for two possible keys and two possible values, the state space of the concurrent specification is surprisingly large (10,083 unique states). One way to evaluate the specification would be a calculation of the expected state space of the system with the same parameters. If such a calculation agreed with the results of model checking it would increase our confidence in the specification accurately describing the system.
 \\\\
 % The conclusion-y part
 The results of model checking do not conclusively prove correctness because they must necessarily be finite in scope. In the case where limited computing power and memory is available, they are definitely finite and indeed quite small. One could argue that correctness on a small sample space implies total correctness, but such an argument can not be based on model checking alone. Again, some human ingenuity is needed. However, successful model checking on a small sample space should increase our confidence in the correctness of the structure.
 \\\\
-Model checking with TLC can be used to exhaustively show the correctness of a structure on a small subset of the sample space. The results on this subset correspond to the properties formally proven by Shalev et al. with the exception of operation failures.
-
+Model checking with TLC can be used to exhaustively show the correctness of a structure on a small subset of the sample space. The results on this subset correspond to the properties formally proven by Shalev et al. with the exception of operation failures which proved impossible to check with the computational resources available.
 \section{Implementation Issues aka. "dumb things I did"}
 % I learned a lot, but the output does not prove anything about concurrent correctness
 % structure of the spec follows the structure of the implementation, which does not lend itself to logical state transitions.
 % should have made a more conscious decision about step size
 % "correct" thinking: what constitutes the state? when does that change?
 % implementation (the proof kind) looked to be elegant, but introduced unwanted complexity
+In this section I will explain some of the choices made in the development of the specification and discuss the experiences and lessons learned from the process. The first part discusses the non-concurrent specification and its shortcomings, and is followed by a discussion of experiences from the process as a whole. 
+\\\\
 The first attempt at writing a specification served as a learning tool for the TLA+ language, but did not produce a useful specification for the purpose of proving correctness in a concurrent setting. The structure of the specification was based on the structure of an implementation in that actions correspond to the \textit{insert}, \textit{delete} and \textit{bucket init} functions in Shalev et al.'s pseudocode. Such a structure brings with it the implicit assumption that the functions are linearizable since one action corresponds to one state transition.
 \\\\
 The attempt to show correctness through implementation also posed difficulties. The idealized hashmap specification proved impossible to directly map to the split-order specification because a \textit{find} operation in may result in a bucket needing to be initialized and thus can not be used directly in a refinement mapping. Instead we introduced a set of auxiliary variables~\cite{Lamport2019a} and maintained an idealized map that was updated in atomic steps to implement the Hashmap specification. The updates loosely correspond to a \textit{find} operation and the correctness of this idealized map does seem to correspond to a correct underlying structure (albeit at an earlier state), but introduces additional complexity to the spec and does not resolve the underlying issue of assumed linearizability.
 \\
 \begin{itemize}
-    \item it's easy to mis-state what you want to check, and to make subtle spec errors if not careful (e.g my original insert/delete-fails)
+    \item it's easy to mis-state what you want to check, and to make subtle spec errors if not careful (e.g my original insert/delete-fails which did always held because the op terminated, and then never held because there was no ID on ops)
     \item careful with infinities (e.g my infinite set of activeOps)
-    \item sometimes it is hard to tell if a model is doing what you think
+    \item sometimes it is hard to tell if a model is doing what you think (use assertions of assumed invariance)
     \item choose step-size early and clearly
     \item consider what we want to show and make sure the spec is capable of showing that. (Uniqueness in fail properties)
+    \item formal specification/model checking is probably most useful as a development tool for algorithms and protocols the same way test-driven development is used for implementations.
 \end{itemize}
 \backmatter
 \printbibliography{}
