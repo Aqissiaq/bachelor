@@ -1208,30 +1208,55 @@ A surprising feature is the sheer size of the state space. Even for two possible
 The results of model checking do not conclusively prove correctness because they must necessarily be finite in scope. In the case where limited computing power and memory is available, they are definitely finite and indeed quite small. One could argue that correctness on a small sample space implies total correctness, but such an argument can not be based on model checking alone. Again, some human ingenuity is needed. However, successful model checking on a small sample space should increase our confidence in the correctness of the structure.
 \\\\
 Model checking with TLC can be used to exhaustively show the correctness of a structure on a small subset of the sample space. The results on this subset correspond to the properties formally proven by Shalev et al. with the exception of operation failures which proved impossible to check with the computational resources available.
-\section{Implementation Issues aka. "dumb things I did"}
+
+\section{Implementation Issues}
 % I learned a lot, but the output does not prove anything about concurrent correctness
 % structure of the spec follows the structure of the implementation, which does not lend itself to logical state transitions.
 % should have made a more conscious decision about step size
 % "correct" thinking: what constitutes the state? when does that change?
 % implementation (the proof kind) looked to be elegant, but introduced unwanted complexity
-In this section I will explain some of the choices made in the development of the specification and discuss the experiences and lessons learned from the process. The first part discusses the non-concurrent specification and its shortcomings, and is followed by a discussion of experiences from the process as a whole. 
+In this section I will explain some of the choices made in the development of the specification and discuss the experiences and lessons learned from the process. The first part discusses the non-concurrent specification and its shortcomings, and is followed by a discussion of experiences from the concurrent specification and the process as a whole. 
 \\\\
 The first attempt at writing a specification served as a learning tool for the TLA+ language, but did not produce a useful specification for the purpose of proving correctness in a concurrent setting. The structure of the specification was based on the structure of an implementation in that actions correspond to the \textit{insert}, \textit{delete} and \textit{bucket init} functions in Shalev et al.'s pseudocode. Such a structure brings with it the implicit assumption that the functions are linearizable since one action corresponds to one state transition.
 \\\\
-The attempt to show correctness through implementation also posed difficulties. The idealized hashmap specification proved impossible to directly map to the split-order specification because a \textit{find} operation in may result in a bucket needing to be initialized and thus can not be used directly in a refinement mapping. Instead we introduced a set of auxiliary variables~\cite{Lamport2019a} and maintained an idealized map that was updated in atomic steps to implement the Hashmap specification. The updates loosely correspond to a \textit{find} operation and the correctness of this idealized map does seem to correspond to a correct underlying structure (albeit at an earlier state), but introduces additional complexity to the spec and does not resolve the underlying issue of assumed linearizability.
+The attempt to show correctness through implementation also posed difficulties. The idealized hashmap specification proved impossible to directly map to the split-order specification because a \textit{find} operation may result in a bucket needing to be initialized and thus can not be used directly in a refinement mapping. Instead we introduced a set of auxiliary variables~\cite{Lamport2019a} and maintained an idealized map that was updated in atomic steps to implement the Hashmap specification. The updates loosely correspond to a \textit{find} operation and the correctness of this idealized map does seem to correspond to a correct underlying structure (albeit at an earlier state), but these auxillary variables introduce additional complexity to the spec and do not resolve the underlying issue of assumed linearizability.
+\\\\
+I will now discuss the lessons learned from writing the concurrent specification and errors or experiences that lead to these lessons.
+\\\\
+Make sure early on that the purpose of the specification is known and keep this in mind when designing it. On several occasions I discovered that the specification I had written was not suitable for its purpose. First, the non-concurrent spec proved difficult to map to an abstract hashmap spec. Then, the concurrent spec turned out to be unsuitable for showing the failure of operations because it did not differentiate between individual operations and so could not show that a specific operation was aborted. In both cases it would have been useful to be clear about precisely what I wished to show at an earlier state and plan the specification accordingly.
+\\\\
+On a similar note, it is important to choose the step size of a specification as early as possible. While the plan was to gradually granularize the specification and weaken assumptions of linearizability, it was much easier to write a specification having defined the distance between any two steps of the behavior. In the concurrent specification this was done by finding the variables whose changes we need to track and making each change a single step. In the non-concurrent specification no such considerations were made, leading to a specification that was not suited to show the working of a concurrent system at all. Being clear and conscious about the choice of step size is also adviced in the TLA+ video course~\cite{Lamport_video_2019}.
+\\\\
+It is very easy to subtly mis-state model checking properties, especially liveness properties. When writing the properties \textit{DeleteFails} and \textit{InsertFails} the first tries were tautologically true because they simply described the operation having terminated at \textbf{some} later stage, which holds whether the operation aborts or completes. Another attempt proved to always be false because operations were not individually distinguished and so the success of a later, identical operation would cause the property to fail. Such errors are easy to make, especially for beginners (like the author), and especially the former is very difficult to spot. The errors in \textit{DeleteFails} and \textit{InsertFails} were found by making changes that should cause the property to fail -- in this case never aborting an operation -- and seeing that it still held. This method requires a healthy distrust of ones own work.
+\\\\
+A smaller trap is accidental infinities. Especially when working with sets it is possible to accidentally create an infinite state space. The set of active operations in the concurrent specification resulted in such an error. Without imposing an upper bound on the number of active operations, the specification allowed an infinite number of unique states by appending more and more active operations, but never progressing them.
+\\\\
+(Cut or move to conclusion?)\\
+Finally, a note on the usefulness of writing and model checking specifications: Sometimes formal specification can uncover rare or complex errors in algorithms and protocols~\cite{Lund2019, hun som brukte Alloy?}, but in this case it did not. Instead, my result may slightly increase confidence in the correctness of Shalev et al.'s hashmap, but arguably no more than a working implementation passing tests. That increase is a poor return on investment, especially if the user has to learn the tools.
+\\\\
+It seems that formal specification and model checking has two uses:
+\begin{enumerate}
+    \item as a way to produce minimal examples of a suspected error, and \label{point:error}
+    \item as a development tool for algorithms and protocols \label{point:dev}
+\end{enumerate}
+The first case, exemplified by [hun med Alloy på Chord igjen], is useful because it lets developers find and show errors in the algorithms, rather than in programs or implementations. In the second case, a specification is used to test and improve an algorithm or protocol under development without resorting to implementation. This is especially useful when an implementation requires hardware~\cite{Lamport-Batson2002} or is prohibitively large in scale~\cite{Amazon2015} and lets developers iterate on designs while ensuring their correctness in a similar way to test-driven development for implementation.
 \\
 \begin{itemize}
-    \item it's easy to mis-state what you want to check, and to make subtle spec errors if not careful (e.g my original insert/delete-fails which did always held because the op terminated, and then never held because there was no ID on ops)
-    \item careful with infinities (e.g my infinite set of activeOps)
-    \item sometimes it is hard to tell if a model is doing what you think (use assertions of assumed invariance)
-    \item choose step-size early and clearly
-    \item consider what we want to show and make sure the spec is capable of showing that. (Uniqueness in fail properties)
+    \item \checkmark it's easy to mis-state what you want to check, and to make subtle spec errors if not careful (e.g my original insert/delete-fails which did always held because the op terminated, and then never held because there was no ID on ops)
+    \item \checkmark careful with infinities (e.g my infinite set of activeOps)
+    \item (\checkmark) sometimes it is hard to tell if a model is doing what you think (use assertions of assumed invariance)
+    \item \checkmark choose step-size early and clearly
+    \item \checkmark consider what we want to show and make sure the spec is capable of showing that. (Uniqueness in fail properties)
     \item formal specification/model checking is probably most useful as a development tool for algorithms and protocols the same way test-driven development is used for implementations.
 \end{itemize}
+\chapter{Conclusion}
+In this project a formal specification of Shalev et al.'s lock free hashmap implementation has been written in TLA+ and the TLC model checker has been used to demonstrate their claimed invariants on state spaces with up to 4 keys, 16 possible values and 3 concurrent processes.
+\\\\
+The result is an increased confidence in the correctness of this design. Additionally several experiences with using TLA+ and the TLC model checker were compiled and discussed.
 \backmatter
 \printbibliography{}
-\appendix
-\addcontentsline{toc}{chapter}{Appendix}
+% \appendix
+% \addcontentsline{toc}{chapter}{Appendix}
 % \addtocontents{toc}{\protect\contentsline{chapter}{Appendix:}{}}
 \end{document}
 
