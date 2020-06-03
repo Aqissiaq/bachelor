@@ -1,0 +1,15 @@
+conclusion: conclusion(s), concluding remarks, future works?
+
+results: - errors ser ut som gyldige datapunkt. egen tabell? rød tekst? "more than 33 minutes"
+         - egen tabell for typen errors?
+
+discussion:
+    - flytt checker/specification scoping til introduksjonen/scope and limitations?
+    - kanskje flette inn diskusjonen i results og flytte resten av diskusjonen til conclusion
+    - repeat scope and thesis in discussion
+        - what was done? what have we achieved?
+    - purpose/use of non-concurrent specification
+    - I -> we
+
+flesh out method
+thesis -> problem statement
