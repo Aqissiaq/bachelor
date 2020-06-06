@@ -48,7 +48,7 @@ Early solutions to the problem of proving correctness include Hoare~\cite{Hoare1
 \\\\
 Building on the work in temporal logics, model checkers seek to minimize the human labor and ingenuity needed to prove correctness. This is done by specifying a model using some system of logic and then letting a model checker exhaustively survey the possible states of the system. This automates the process of proving correctness. One such model checker is the TLC model checker based on Lamport's TLA and incorporated in the TLA+ IDE.
 
-\section{Thesis}
+\section{Problem Statement}\label{sec:problem-statement}
 Shalev et al.'s split-ordered list design is a correct extensible hashmap for concurrent systems.
 \\\\
 Furthermore it is possible to check this using a formal model checker, and the results of this will correspond to the properties proven by Shalev et al.
@@ -1071,8 +1071,8 @@ OperationStates ==
  bucket \.{:} 0 \.{\dotdot} ( MaxSize \.{-} 1 ) ,\, id \.{:} 0 \.{\dotdot}
  MaxID ]}%
 \end{tlatex}
-    \caption{The failure invariants as TLA properties}
-    \label{fig:fail-invariants}
+\caption{The failure invariants as TLA properties}
+\label{fig:fail-invariants}
 \end{figure}
 \\\\
 Having formalized these invariants we are left with one safety property and four liveness properties, as well as the non-concurrent specification.
@@ -1086,22 +1086,22 @@ Unless otherwise noted, the maximum size of the map was equal to the number of p
 \subsection{Non-concurrent specification}
 By setting \textit{HashmapSpec} as a property while checking \textit{SplitOrder}, the model checker tests if the latter implements the former. The implementation was checked for increasing sizes of the map, with results reported in \autoref{tab:SplitOrder}.
 \begin{table}[h]
-    \begin{tabular}{ |c|c||c|c|c|c| }
+    \centering
+    \begin{tabular}{ |c|c||c|c|c| }
         \hline
-        Keys & Values & Diameter & Distinct & Time & Error\\
-             &        &          & States   & (hh:mm:ss)&\\
+        Keys & Values & Diameter & Distinct & Time \\
+        &        &          & States   & (hh:mm:ss)\\
         \hline
-        2 & 4  & 10 & 2,523      & 00:00:01 &\\
-        2 & 8  & 10 & 23,763     & 00:00:08 &\\
-        2 & 16 & 10 & 279,075    & 00:01:02 &\\
-        4 & 2  & 17 & 39,827     & 00:00:09 &\\
-        4 & 4  & 17 & 1,790,067  & 00:03:44 &\\
-        4 & 8  & 17 & 147,266,723& 07:14:45 &\\
-        4 & 16 & 17 & 84,587,043 & 02:54:11 & No space left on device\\
+        2 & 4  & 10 & 2,523      & 00:00:01\\
+        2 & 8  & 10 & 23,763     & 00:00:08\\
+        2 & 16 & 10 & 279,075    & 00:01:02\\
+        4 & 2  & 17 & 39,827     & 00:00:09\\
+        4 & 4  & 17 & 1,790,067  & 00:03:44\\
+        4 & 8  & 17 & 147,266,723& 07:14:45\\
         \hline
     \end{tabular}
-\caption{Model checking results for SplitOrder}
-\label{tab:SplitOrder}
+    \caption{Model checking results for SplitOrder}
+    \label{tab:SplitOrder}
 \end{table}
 While the results of \textit{SplitOrder} do not prove much about the structure in a concurrent setting, showing this implementation holds -- at least for maps with up to 4 keys and 8 values -- helps to increase our confidence that is does in fact implement an abstract hashmap structure.
 \\\\
@@ -1112,45 +1112,85 @@ In the concurrent specification each invariant was checked in isolation, again i
 \begin{table}[h]
     \centering
     \resizebox{\textwidth}{!}{%        
-        \begin{tabular}{ |L|c|c|c||c|c|c|p{1cm}| }
-            \hline
-            Invariant & Keys & Values & Conc. & Diameter & Distinct & Time & Error\\
-            &      &        & Ops        &          & States   & (mm:ss) &\\
-            \hline
-            \textit{InsertSucceeds}& 4 & 2 & 2 & 62 & 1,627,390 & 02:15 &\\
-                                    & 4 & 3 & 2 & 27 & 1,426,888 & 33:30 & Out of memory\\
-            \hline
-            \textit{DeleteSucceeds}& 4 & 2 & 2 & 62 & 1,627,390 & 00:45 &\\
-                                    & 4 & 3 & 2 & 39 & 6,067,795 & 30:30 & GC limit exceeded\\
-            \hline
-            \textit{BucketsInitialized} & 2 & 2 & 2 & 38 & 10,083    & 00:02 &\\
-                                        & 2 & 4 & 2 & 38 & 66,901    & 00:16 &\\
-                                        & 2 & 4 & 8 & 38 & 624,645   & 00:16 &\\
-                                        & 2 & 4 & 16& 38 & 7,371,157 & 01:55 &\\
-                                        & 4 & 2 & 2 & 62 & 1,627,390 & 00:22 &\\
-                                        & 4 & 3 & 2 & 62 & 8,368,282 & 01:39 &\\
-                                        & 4 & 4 & 2 & 62 & 29,973,646& 06:10 &\\
-                                        & 4 & 5 & 2 & 62 & 85,419,916& 18:41 &\\
-                                        & 4 & 2 & 3 & 75 & 61,353,460& 13:59 &\\
-                                        & 4 & 2 & 4 & 57 &120,175,837& 26:49 &???\\
-            \hline
-        \end{tabular}}
+    \begin{tabular}{ |L|c|c|c||c|c|c| }
+        \hline
+        Invariant & Keys & Values & Conc. & Diameter & Distinct & Time\\
+        &      &        & Ops        &          & States   & (mm:ss)\\
+        \hline
+        \textit{InsertSucceeds} & 2 & 2 & 2 & 38 & 10,083    & 00:02\\
+        & 2 & 4 & 2 & 38 & 66,901    & 00:13\\
+        & 2 & 4 & 3 & 45 & 1,351,453 & 01:50\\
+        & 4 & 2 & 2 & 62 & 1,627,390 & 02:15\\
+        \hline
+        \textit{DeleteSucceeds} & 2 & 2 & 2 & 38 & 10,083    & 00:01\\
+        & 2 & 4 & 2 & 38 & 66,901    & 00:07\\
+        & 2 & 4 & 3 & 45 & 1,351,453 & 00:31\\
+        & 4 & 2 & 2 & 62 & 1,627,390 & 00:45\\
+        \hline
+        \textit{BucketsInitialized} & 2 & 2 & 2 & 38 & 10,083    & 00:02\\
+        & 2 & 4 & 2 & 38 & 66,901    & 00:16\\
+        & 2 & 4 & 8 & 38 & 624,645   & 00:16\\
+        & 2 & 4 & 16& 38 & 7,371,157 & 01:55\\
+        & 4 & 2 & 2 & 62 & 1,627,390 & 00:22\\
+        & 4 & 3 & 2 & 62 & 8,368,282 & 01:39\\
+        & 4 & 4 & 2 & 62 & 29,973,646& 06:10\\
+        & 4 & 5 & 2 & 62 & 85,419,916& 18:41\\
+        & 4 & 2 & 3 & 75 & 61,353,460& 13:59\\
+        \hline
+    \end{tabular}}
     \caption{TLC model checking results for SOConcurrent}
     \label{tab:SOConcurrent}
+\end{table}
+\begin{table}
+    \centering
+    \resizebox{\textwidth}{!}{%
+        \begin{tabular}{ |L|L|c|c|c||c|c|c|p{1cm}| }
+        \hline
+        Invariant & Keys & Values & Conc. & Diameter & Distinct & Time & Error\\
+                  &      &        & Ops   &          & States   & (hh:mm:ss)&\\
+        \hline
+        Non-Concurrent   &4      & 16     &       &17 & 84,587,043 & 02:54:11 & 3\\
+        \hline
+        \textit{InsertSucceeds}& 4 & 3 & 2 & 27 & 1,426,888 & 00:33:30 & 2\\
+        \hline
+        \textit{DeleteSucceds}& 4 & 3 & 2 & 39 & 6,067,795 & 00:30:30 & 1\\
+        \hline
+        \textit{BucketsInitialized}& 4 & 2 & 4 & 57 &120,175,837& 00:26:49 &4\\
+        \hline
+    \end{tabular}}
+    \caption{Failed model checks}
+    \label{tab:failed-checks}
+\end{table}
+\begin{table}
+    \centering
+    \begin{tabular}{ |L|L| }
+        \hline
+        Code & Error\\
+        \hline
+        1 & GC Overhead limit exceeded\\
+        2 & Out of heap space\\
+        3 & No space left on device\\
+        4 & Unknown\\
+        \hline
+    \end{tabular}
+    \caption{Error Codes}
+    \label{tab:errors}
 \end{table}
 \\
 \Autoref{tab:SOConcurrent} shows the results of checking \textit{InsertSucceeds} and \textit{DeleteSucceeds}. Both exhaust the available memory attempting to check a map with 4 possible keys and 3 possible values in approximately 30 minutes. However, both hold for a smaller map with only 2 possible values and this completed in only a few minutes. Also note that \textit{DeleteSucceeds} runs out of memory having explored all most 5 times the number of unique states. The descrepancy in space explored is likely because an insert operation takes 4 steps, while a delete takes only 3 leading to shorter behavior traces for deletes.
 \\\\
 \Autoref{tab:SOConcurrent} also shows the result of checking \textit{BucketsInitialized} on the same specification. Since \textit{BucektsInitialized} is a safety property, memory is not consumed as quickly as with the earlier liveness properties and \textit{BucektsInitialized} was shown to hold for up to 4 keys and 5 values. Additionally this property was checked for larger numbers of concurrent operations. Note that a map with 4 keys and 2 values was fully explored for 2 concurrent operations in 22 seconds, but took 14 minutes with 3 concurrent operations. 4 concurrent operations forced a reboot after 26 minutes.
+\\\\
+\Autoref{tab:failed-checks} and \ref{tab:errors} describe model checking runs which failed to complete due to memory or disk space constraints.
 %Notes
 %\begin{itemize}
-%        \item state space explosion from 2 to 3 values is immense
-%        \item BucketsInitialized with 4 concurrent ops crashed my laptop
-%        \item Final InsertSucceeds spent 2/3 of the time on diameter 27
-%        \item Memory runs out later with DeleteSucceeds, probably because delete takes fewer steps so traces are shorter
-%        \item smaller tests have same diameter and state number, which is expected (good)
-%        \item DeleteSucceeds triggers GC fault instead of out-of-memory. Might mean less of the memory is reclaimable?
-%\end{itemize}
+    %        \item state space explosion from 2 to 3 values is immense
+    %        \item BucketsInitialized with 4 concurrent ops crashed my laptop
+    %        \item Final InsertSucceeds spent 2/3 of the time on diameter 27
+    %        \item Memory runs out later with DeleteSucceeds, probably because delete takes fewer steps so traces are shorter
+    %        \item smaller tests have same diameter and state number, which is expected (good)
+    %        \item DeleteSucceeds triggers GC fault instead of out-of-memory. Might mean less of the memory is reclaimable?
+    %\end{itemize}
 \begin{table}
     \centering
     \resizebox{\textwidth}{!}{%
@@ -1163,9 +1203,9 @@ In the concurrent specification each invariant was checked in isolation, again i
         & 2 & 4 & 2 & 406 & 387,645,300& 00:54:33 &\\
         & 4 & 2 & 2 & 153 & 665,993,030& 04:22:12 &\\
         \hline
-        \textit{InsertFails} & 2 & 2 & 2 & 20 & 64,000 & 00:01:07 & Out of heap space\\
+        \textit{InsertFails} & 2 & 2 & 2 & >20 & >64,000 & >00:01:07 & 2\\
         \hline
-        \textit{DeleteFails} & 2 & 2 & 2 & 25 & 153,370& 00:02:12 & GC overhead limit exceeded\\ 
+        \textit{DeleteFails} & 2 & 2 & 2 & >25 & >153,370& >00:02:12 & 1\\ 
         \hline
     \end{tabular}}
     \caption{Model checking SOConcurrent with operation IDs}
@@ -1175,17 +1215,17 @@ In the concurrent specification each invariant was checked in isolation, again i
 For the final two invariants it was necessary to use a slightly different specification in which operations are associated with an ID. Because previous model resulted in a diameter of 62, this model was set up to use a maximum of 62 unique IDs. Differentiating between individual operations leads to a significant increase in both diameter and distinct states because equivalent sets of active operations are now seen as distinct states.
 \\\\
 \Autoref{tab:SOConcurrent_ID} shows the results of checking this model with operation IDs. The dpeth of the state space even for minimal key/value sets makes it infeasible to check liveness properties for this specification.
-\\\\
-Lessons learned
-\begin{itemize}
-    \item state space explosion is \textbf{real}
-    \item liveness properties tend to quickly exceed Java's GC limit
-\end{itemize}
 
-\chapter{Discussion}\label{ch:discussion}
-In this chapter we first discuss the results of model checking in relation to the thesis: that Shalev et al.'s design is a correct extensible hashmap for concurrent systems and that a model checker can show this.
-\\\\
-The latter half of the chapter is concerned with the experiences of writing and testing a specification, and the lessons learned in the process.
+% \\\\
+% Lessons learned
+% \begin{itemize}
+%     \item state space explosion is \textbf{real}
+%     \item liveness properties tend to quickly exceed Java's GC limit
+% \end{itemize}
+
+\chapter{Concluding Remarks}
+In this chapter we first discuss the results of model checking in relation to the problem statement, then follows a discussion of the experience of writing and testing the specification, and the lessons learned in this process. Finally we conclude our work and answer the problem statement.
+
 
 \section{The Results of Model Checking}
 The results of model-checking the non-concurrent specification show that it does implement the higher level abstract specification. While it does not show the correctness of the structure in a concurrent setting, this result gives us reason to believe the overall structure is sound if the operations are linearizable.
@@ -1231,7 +1271,7 @@ It is very easy to subtly mis-state model checking properties, especially livene
 \\\\
 A smaller trap is accidental infinities. Especially when working with sets it is possible to accidentally create an infinite state space. The set of active operations in the concurrent specification resulted in such an error. Without imposing an upper bound on the number of active operations, the specification allowed an infinite number of unique states by appending more and more active operations, but never progressing them.
 \\\\
-(Cut or move to conclusion?)\\
+\section{The Usefulness of Formal Specification}
 Finally, a note on the usefulness of writing and model checking specifications: Sometimes formal specification can uncover rare or complex errors in algorithms and protocols~\cite{Lund2019, hun som brukte Alloy?}, but in this case it did not. Instead, my result may slightly increase confidence in the correctness of Shalev et al.'s hashmap, but arguably no more than a working implementation passing tests. That increase is a poor return on investment, especially if the user has to learn the tools.
 \\\\
 It seems that formal specification and model checking has two uses:
@@ -1240,19 +1280,22 @@ It seems that formal specification and model checking has two uses:
     \item as a development tool for algorithms and protocols \label{point:dev}
 \end{enumerate}
 The first case, exemplified by [hun med Alloy på Chord igjen], is useful because it lets developers find and show errors in the algorithms, rather than in programs or implementations. In the second case, a specification is used to test and improve an algorithm or protocol under development without resorting to implementation. This is especially useful when an implementation requires hardware~\cite{Lamport-Batson2002} or is prohibitively large in scale~\cite{Amazon2015} and lets developers iterate on designs while ensuring their correctness in a similar way to test-driven development for implementation.
-\\
-\begin{itemize}
-    \item \checkmark it's easy to mis-state what you want to check, and to make subtle spec errors if not careful (e.g my original insert/delete-fails which did always held because the op terminated, and then never held because there was no ID on ops)
-    \item \checkmark careful with infinities (e.g my infinite set of activeOps)
-    \item (\checkmark) sometimes it is hard to tell if a model is doing what you think (use assertions of assumed invariance)
-    \item \checkmark choose step-size early and clearly
-    \item \checkmark consider what we want to show and make sure the spec is capable of showing that. (Uniqueness in fail properties)
-    \item formal specification/model checking is probably most useful as a development tool for algorithms and protocols the same way test-driven development is used for implementations.
-\end{itemize}
-\chapter{Conclusion}
+\section{Conclusion}
 In this project a formal specification of Shalev et al.'s lock free hashmap implementation has been written in TLA+ and the TLC model checker has been used to demonstrate their claimed invariants on state spaces with up to 4 keys, 16 possible values and 3 concurrent processes.
 \\\\
-The result is an increased confidence in the correctness of this design. Additionally several experiences with using TLA+ and the TLC model checker were compiled and discussed.
+We recall the problem statement from \autoref{sec:problem-statement}:
+\begin{quotation}
+    Shalev et al.'s split-ordered list design is a correct extensible hashmap for concurrent systems.
+    \\\\
+    Furthermore it is possible to check this using a formal model checker, and the results of this will correspond to the properties proven by Shalev et al.
+\end{quotation}
+The results of model checking confirmed the claimed invariants of Shalev et al.'s design for maps with up to four keys and two possible values, with the exception of failure conditions for \textit{Delete} and \textit{Insert}. The testing was limited by the memory required to test liveness properties.
+\\\\
+Additionally the experiences of formal specification using TLA+ and the TLC model checker were discussed and alternative uses proposed.
+\\\\
+We conclude that model checking gives some increased confidence in the correctness of Shalev et al.'s split-order hashmap, but that it is poorly suited to showing liveness properties in the absence of significant memory resources.
+\\\\
+Finally, we note that model checking may have more value as a development tool for protocols, data structures and algorithms than as a way to prove correctness of existing programs.
 \backmatter
 \printbibliography{}
 % \appendix
