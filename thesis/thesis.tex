@@ -44,7 +44,7 @@ In both small- and large-scale computer systems it is important to ensure correc
 \\\\
 It is therefore troublesome that such systems are incredibly difficult to design, debug and reason about. The complexity of interactions between processes and sheer number of possible edge cases makes it infeasible for a person to determine correctness.
 \\\\
-Early solutions to the problem of proving correctness include Hoare~\cite{Hoare1969}, Floyd~\cite{Floyd1967} and Pnueli's~\cite{Pnueli1977} temporal logics and Leslie Lamport's Temporal Logic of Actions~\cite{Lamport1977} which seek to formalize the execution of programs in order to reason about them with logic. These formal methods proved useful, but laborious~\cite{Clarke2009}.
+Early solutions to the problem of proving correctness include Hoare~\cite{Hoare1969}, Floyd~\cite{Floyd1967} and Pnueli's~\cite{Pnueli1977} temporal logics and Leslie Lamport's Temporal Logic of Actions (TLA)~\cite{Lamport1977} which seek to formalize the execution of programs in order to reason about them with logic. These formal methods proved useful, but laborious~\cite{Clarke2009}.
 \\\\
 Building on the work in temporal logics, model checkers seek to minimize the human labor and ingenuity needed to prove correctness. This is done by specifying a model using some system of logic and then letting a model checker exhaustively survey the possible states of the system. This automates the process of proving correctness. One such model checker is the TLC model checker based on Lamport's TLA and incorporated in the TLA+ IDE.
 
@@ -54,18 +54,31 @@ Shalev et al.'s split-ordered list design is a correct extensible hashmap for co
 Furthermore it is possible to check this using a formal model checker, and the results of this will correspond to the properties proven by Shalev et al.
 
 \section{Method}
-In order to prove the correctness of the hashmap, its behavior will be implemented as a specification in TLA+~\cite{Lamport_specifying_2002} and the TLC model checker will be used to test the claimed invariants.
+In order to demonstrate the correctness of the hashmap, we specify its behavior using TLA+~\cite{Lamport_specifying_2002} and use the TLC model checker in the TLA+ toolbox~\cite{TLAplus} to test the claimed invariants.
 \\\\
-The specification will be developed in stages of increasing granularity, assuming the atomicity of operations to begin with and gradually loosening assumptions.
+We construct four specifications:
+\begin{enumerate}
+    \item a generic hashmap,
+    \item a non-concurrent specification of the split-order structure,
+    \item a concurrent specification of the split-order structure, and
+    \item a concurrent specification with operation ID's.
+\end{enumerate}
+The first two are used to test the behavior of the structure in a non-concurrent setting which allows for a larger state space. The third is used to test a smaller state space in a concurrent setting, while the final specification is needed to test invariants relating to early termination of operations.
 
-\section{Scope?}
+\section{Scope}
+Showing the correctness of Shalev et al.'s hashmap structure requires two things:
+\begin{itemize}[label={}]
+    \item that the specification of the structure is correct and
+    \item that the behavior of the model checker is correct.
+\end{itemize}
+The latter is outside the scope of this project, but the TLC model checker is open source~\cite{TLAplus} and has been used in industry with success~\cite{Amazon2015, Lamport-Batson2002}. On the other hand, the specification is very much within the scope of this project. For a specification to be helpful in proving correctness of a system it is important that it specifies the system accurately, and that the properties checked by the model checker are precisely the properties we wish to show in the system. This is achieved through an explanation of the specification in \autoref{ch:specification} and the results are discussed in \autoref{ch:concluding-remarks}.
 
 \section{Outline}
 \begin{enumerate}[label={}]
     \item \textbf{\Autoref{ch:background}} discusses the motivation for formal verification and model checking, followed by a description of Temporal Logic in \autoref{sec:TL} and the TLA+ language in \autoref{sec:TLA+}. Finally Shalev et al.'s hashmap design is described in \autoref{sec:hashmap}.
     \item \textbf{\Autoref{ch:specification}} describes the specification of the hashmap in TLA+ and the development of this specification.
     \item \textbf{\Autoref{ch:results}} describes the method and results of model checking.
-    \item \textbf{\Autoref{ch:discussion}} discusses these results in relation to the thesis, and explores experiences and lessons lerned.
+    \item \textbf{\Autoref{ch:concluding-remarks}} discusses these results in relation to the problem statement, and explores experiences and lessons lerned.
 \end{enumerate}
 
 
@@ -184,11 +197,90 @@ This lets us describe useful properties such as
     \item $G(p \implies F(q))$ -- whenever $p$ is true it will eventually be followed by a state in which $q$ is true. (this is equivalent to $p \eventually q$)     
 \end{itemize}
 \section{TLA+}\label{sec:TLA+}
+This section introduces the structure and syntax of TLA+ necessary to follow the description of specifications in the following chapter.
+\\\\
+TLA+ is a formal specification language that describes a series of \textbf{actions} acting on \textbf{variables}. Each action statement is a logical predicate on a pair of states and a behavior adheres to a specification if this predicate holds for every step of the behavior.
+\\\\
+The basic form of a specification is
+\begin{tla}
+    Spec == Init /\ [][Next]_<<iterator, reverseIterator>>
+\end{tla}
+\begin{tlatex}
+ \@x{\@s{16.4} Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ {\langle}
+ iterator ,\, reverseIterator {\rangle}}}%
+\end{tlatex}
+\\\\
+which reads "Init and always Next" and means the statement \textit{Init} is true for the initial state and the values of the variables \textit{iterator} and \textit{reverseIterator} make the statement \textit{Next} true on all steps.
+\\\\
+Each action is a predicate on primed and un-primed variables, where primed variables denote the value of a variable in the second state. For example
+\begin{tla}
+    Next == iterator' = iterator + 1 /\ UNCHANGED reverseIterator
+\end{tla}
+\begin{tlatex}
+ \@x{\@s{16.4} Next \.{\defeq} iterator \.{'} \.{=} iterator \.{+} 1 \.{\land}
+ {\UNCHANGED} reverseIterator}%
+\end{tlatex}
+\\\\
+describes a variable \textit{iterator} which is increased by one in each step. This is not an assignment, but a logical predicate whose value can be true or false on each step. $=$ is a statement of mathematical equality, so the order of variables does not matter. Also note that each action must include all variables, so UNCHANGED is used to specify that the value of \textit{reverseIterator} does not change in this step.
+\\\\
+When an action includes multiple variables, their behavior can be specified by a conjunction or disjunction of predicates. For example
+\begin{tla}
+    Next ==
+        /\ iterator' = iterator + 1
+        /\ reverseIterator' = reverseIterator - 1
+\end{tla}
+\begin{tlatex}
+\@x{\@s{16.4} Next \.{\defeq}}%
+\@x{\@s{32.8} \.{\land} iterator \.{'} \.{=} iterator \.{+} 1}%
+\@x{\@s{32.8} \.{\land} reverseIterator \.{'} \.{=} reverseIterator \.{-} 1}%
+\end{tlatex}
+\\\\
+is a conjunction describing a step in which \textit{iterator} is increased by one and \textit{reverseIterator} is decreased by one, while
+\begin{tla}
+    Next ==
+        \/ iterator' = iterator + 1
+        \/ reverseIterator' = reverseIterator - 1
+\end{tla}
+\begin{tlatex}
+\@x{\@s{16.4} Next \.{\defeq}}%
+\@x{\@s{32.8} \.{\lor} iterator \.{'} \.{=} iterator \.{+} 1}%
+\@x{\@s{32.8} \.{\lor} reverseIterator \.{'} \.{=} reverseIterator \.{-} 1}%
+\end{tlatex}
+\\\\
+is a disjunction in which either \textit{iterator} is incremented or \textit{reverseIterator} is decremented.
+\\\\
+The values of variables can be simple constants like numbers and strings, sets, or functions from one set to another. Functions are used to represent associative arrays and more complicated structures.
+\begin{tla}
+    list == [0..42 |-> Nat]
+\end{tla}
+\begin{tlatex}
+\@x{\@s{16.4} list \.{\defeq} [ 0 \.{\dotdot} 42 \.{\mapsto} Nat ]}%
+\end{tlatex}
+\\\\
+Specifies a list with indexes from 0 to 42 (inclusive) and values in the natural numbers and
+\begin{tla}
+    student == [ID : 0..1000, major : {"CS", "math", "gardening"}]
+\end{tla}
+\begin{tlatex}
+ \@x{\@s{16.4} student \.{\defeq} [ ID \.{:} 0 \.{\dotdot} 1000 ,\, major
+ \.{:} \{\@w{CS} ,\,\@w{math} ,\,\@w{gardening} \} ]}%
+\end{tlatex}
+\\\\
+describes a structure with two fields: \textit{ID} and \textit{major} and the possible values of these fields. The values of functions are updated with the EXCEPT construct where 
+\begin{tla}
+    list' = [list EXCEPT ![6] = 28]
+\end{tla}
+\begin{tlatex}
+\@x{\@s{16.4} list \.{'} \.{=} [ list {\EXCEPT} {\bang} [ 6 ] \.{=} 28 ]}%
+\end{tlatex}
+\\\\
+means that the new value list is the same as the old, except the value at index 6 is now 28. This notation is included because many readers find it strange or confusing.
+\\\\
+Additionally TLA+ includes the temporal operators $\Box$ and $\Diamond$ meaning always and eventually, which correspond to Pnueli's \textbf{G}lobal and \textbf{F}uture operators as well as $\Diamond\Box$ which means the predicate eventually becomes true and then stays true forever.
+\\\\
+Finally, implementation in TLA+ is implication. If specification A implements specification B this is exactly equivalent to $A \implies B$. If A is true on a behavior, then B is also true on that behavior.
 %Needs to cover implementation of one spec by another
 \section{Split-Ordered List Hashmap}\label{sec:hashmap}
-
-Maybe a description of hashmaps in general here to set up the later use of table, list, key etc. or is that assumed knowledge?
-\\\\
 Shalev et al.~\cite{Shalev2006} present the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
 \\\\
 Hashmaps are a key building block in many important systems [citation needed], but are difficult to implement concurrently. In particular, the resizing (extending) of the table is difficult to do atomically because at the very least a node must be moved from one list to another. In order to avoid conflicts and loss of data in this process some overhead is required which impacts performance.
@@ -240,9 +332,9 @@ This chapter describes the structure of the TLA+ specification and the process o
 The specification consists of two main parts:
 \begin{enumerate}
     \item a generic hashmap and
-    \item an [insert name of structure here] \textit{implementing} this map.
+    \item SplitOrder \textit{implementing} this map.
 \end{enumerate}
-The generic specification describes the workings of a hashmap with insert and remove operations and ensures that this structure behaves as specified. The [insert name of structure] specification describes Shalev et al.'s specific structure and algorithms for implementing hashmap functionality.
+The generic specification describes the workings of a hashmap with insert and remove operations and ensures that this structure behaves as specified. The SplitOrder specification describes Shalev et al.'s specific structure and algorithms for implementing hashmap functionality.
 \\\\
 We present two versions of the specification at two levels of granularity. The first assumes the atomicity of hashmap operations, while the second describes entirely concurrent operations.
 
@@ -261,7 +353,7 @@ Additionally we will check \textit{type safety}: at every point of execution, al
 \subsection{Hashmap for Implementation}
 \begin{figure}
     \begin{tla}
-        ------------------------------ MODULE hashmap ------------------------------
+------------------------------ MODULE hashmap ------------------------------
 (*****************************************************************************)
 (*This module describes a hashmap to be used for testing with Shalev et al.'s*)
 (*split-ordered list implementation of the data structure                    *)
@@ -322,9 +414,9 @@ KeyHasValue == \forall k \in keys : ~(map[k] = NULL)
 (*******************************************************) 
 HashmapSpec == HashmapInit /\ [][HashmapNext]_<<keys, map>>
 =============================================================================
-    \end{tla}
+\end{tla}
 \begin{tlatex}
-\@x{\@s{32.8}}\moduleLeftDash\@xx{ {\MODULE} hashmap}\moduleRightDash\@xx{}%
+\@x{}\moduleLeftDash\@xx{ {\MODULE} hashmap}\moduleRightDash\@xx{}%
 \begin{lcom}{0}%
 \begin{cpar}{0}{F}{F}{0}{0}{}%
 This module describes a hashmap to be used for testing with Shalev et al.'s
@@ -413,11 +505,9 @@ Insert adds a key to the set of keys and changes one entry in the map. The key i
 \\\\
 Remove removes one key from the set and changes its mapping to NULL. This is done through the set difference operator and the same \texttt{EXCEPT} construct as in insert. Both operations are idempotent, so attempting to remove a key that is not in the map will result in no change.
 \\\\
-The specification also contains temporal formulae \textit{TypeOK} and \textit{KeyHasValue} that specify correct behavior. These have been checked with the TLC model checker [insert results here maybe?].
+The specification also contains temporal formulae \textit{TypeOK} and \textit{KeyHasValue} that specify correct behavior. These have been checked with the TLC model checker and holds for up to 16 possible values and 4 possible keys.
 \\\\
 Finally the entire hashmap is described by \textit{HashmapSpec}. This temporal formula states that the hashmap specification is fulfilled if the initial state fulfills \textit{HashmapInit} and each action fulfills \textit{HashmapNext}. This formula is used to prove a more complex specification implements the semantics of Hashmap.
-\\\\
-The theorem $SOSpec \Rightarrow HashmapSpec$ states that any program following the split-order specification also follows the hashmap specification. Hence, any program following the split-order specification is a correct implementation of a hashmap. It is tested by checking the property \textit{HashmapSpec} in a model checking SOSpec.
 
 \subsection{Non-Concurrent Specification}\label{subsec:non-concurrent}
 The specification consists of three main parts:
@@ -627,6 +717,8 @@ Finally, the \textit{Next} action shown in \autoref{fig:SO-next} describes the t
 \end{figure}
 \\\\
 The \textit{SOFind} operation shown in \autoref{fig:SO-find} corresponds to the find operation in Shalev et al.'s pseudocode and is responsible for updating the map. Because we wish to show that this specification implements the generic hashmap it is necessary to update the set of keys and the map itself at the same time and so a set of auxiliary keys is maintained and only added to the "real" map once a find operation looks for them. Using the "working variables" trick, the specification can be shown to implement the generic hashmap through implication as seen in \autoref{fig:SO-implementation}.
+\\\\
+The theorem $SOSpec \Rightarrow HashmapSpec$ seen in \autoref{fig:SO-implementation} states that any program following the split-order specification also follows the hashmap specification. Hence, any program following the split-order specification is a correct implementation of a hashmap. It is tested by checking the property \textit{HashmapSpec} in a model checking SOSpec.
 
 \subsection{Concurrent Specification}
 \begin{figure}
@@ -674,14 +766,14 @@ OperationStates ==
 \begin{figure}
     \begin{tla}
         (*Begin an insert operation*)
-        Insert(k, v) == activeOps' = activeOps \union {[type|-> {"insert"}, step |-> 1, key |-> k, value |-> v]}           
+        Insert(k, v) == activeOps' = activeOps (+) SetToBag({[type|-> "insert", step |-> 1, key |-> k, value |-> v]})
         (*Begin a delete operation*)
-        Delete(k) == activeOps' = activeOps \union {[type|-> {"delete"}, step |-> 1, key |-> k]}
-        (*Begin a bucket\_init operation*)
-        BucketInit(b) == activeOps' = activeOps \union {[type|-> {"bucket_init"}, step |-> 1, bucket |-> b]}
+        Delete(k) == activeOps' = activeOps (+) SetToBag({[type|-> "delete", step |-> 1, key |-> k]})
+        (*Begin a bucket_init operation*)
+        BucketInit(b) == activeOps' = activeOps (+) SetToBag({[type|-> "bucket_init", step |-> 1, bucket |-> b]})
         
-        NextStep(op) == activeOps' = (activeOps \ {op}) \union {[op EXCEPT !["step"] = op.step + 1]}
-        End(op) == activeOps' = activeOps \ {op}
+        NextStep(op) == activeOps' = (activeOps (-) SetToBag({op})) (+) SetToBag({[op EXCEPT !["step"] = op.step + 1]})
+        End(op) == activeOps' = activeOps (-) SetToBag({op})
     \end{tla}
 \begin{tlatex}
 \@x{\@s{32.8}}%
@@ -690,30 +782,30 @@ OperationStates ==
 }%
 \@xx{}%
  \@x{\@s{32.8} Insert ( k ,\, v ) \.{\defeq} activeOps \.{'} \.{=} activeOps
- \.{\cup} \{ [ type \.{\mapsto} \{\@w{insert} \} ,\, step \.{\mapsto} 1 ,\,
- key \.{\mapsto} k ,\, value \.{\mapsto} v ] \}}%
+ \.{\oplus} SetToBag ( \{ [ type \.{\mapsto}\@w{insert} ,\, step \.{\mapsto}
+ 1 ,\, key \.{\mapsto} k ,\, value \.{\mapsto} v ] \} )}%
 \@x{\@s{32.8}}%
 \@y{%
  Begin a delete operation
 }%
 \@xx{}%
  \@x{\@s{32.8} Delete ( k ) \.{\defeq} activeOps \.{'} \.{=} activeOps
- \.{\cup} \{ [ type \.{\mapsto} \{\@w{delete} \} ,\, step \.{\mapsto} 1 ,\,
- key \.{\mapsto} k ] \}}%
+ \.{\oplus} SetToBag ( \{ [ type \.{\mapsto}\@w{delete} ,\, step \.{\mapsto}
+ 1 ,\, key \.{\mapsto} k ] \} )}%
 \@x{\@s{32.8}}%
 \@y{%
- Begin a bucket\_init operation
+ Begin a bucket_init operation
 }%
 \@xx{}%
  \@x{\@s{32.8} BucketInit ( b ) \.{\defeq} activeOps \.{'} \.{=} activeOps
- \.{\cup} \{ [ type \.{\mapsto} \{\@w{bucket\_init} \} ,\, step \.{\mapsto} 1
- ,\, bucket \.{\mapsto} b ] \}}%
+ \.{\oplus} SetToBag ( \{ [ type \.{\mapsto}\@w{bucket\_init} ,\, step
+ \.{\mapsto} 1 ,\, bucket \.{\mapsto} b ] \} )}%
 \@pvspace{8.0pt}%
  \@x{\@s{32.8} NextStep ( op ) \.{\defeq} activeOps \.{'} \.{=} ( activeOps
- \.{\,\backslash\,} \{ op \} ) \.{\cup} \{ [ op {\EXCEPT} {\bang} [\@w{step}
- ] \.{=} op . step \.{+} 1 ] \}}%
+ \.{\ominus} SetToBag ( \{ op \} ) ) \.{\oplus} SetToBag ( \{ [ op {\EXCEPT}
+ {\bang} [\@w{step} ] \.{=} op . step \.{+} 1 ] \} )}%
  \@x{\@s{32.8} End ( op ) \.{\defeq} activeOps \.{'} \.{=} activeOps
- \.{\,\backslash\,} \{ op \}}%
+ \.{\ominus} SetToBag ( \{ op \} )}%
 \end{tlatex}
     \caption{Starting and stepping through operations}
     \label{fig:op-progress}
@@ -721,46 +813,50 @@ OperationStates ==
 
 \begin{figure}
     \begin{tla}
-        SONext ==
-        \/  /\ \E k \in PossibleKeys :
-                 \E v \in PossibleValues :
-                    Insert(k, v)
-            /\ UNCHANGED <<buckets, count, list, size>>
-        \/  /\ \E k \in PossibleKeys :
-                Delete(k)
-            /\ UNCHANGED <<buckets, count, list, size>>
-        \/ Insert1
-        \/ Insert2
-        \/ Insert3
-        \/ Insert4
-        \/ Delete1
-        \/ Delete2
-        \/ Delete3
-        \/ BucketInit1
-        \/ BucketInit2
-        \/ BucketInit3
+SONext ==
+    \/  /\ \E k \in PossibleKeys :
+             \E v \in PossibleValues :
+                Insert(k, v)
+        /\ BagCardinality(activeOps) < MaxActiveOps
+        /\ UNCHANGED <<buckets, count, list, size>>
+    \/  /\ \E k \in PossibleKeys :
+            Delete(k)
+        /\ BagCardinality(activeOps) < MaxActiveOps
+        /\ UNCHANGED <<buckets, count, list, size>>
+    \/ Insert1
+    \/ Insert2
+    \/ Insert3
+    \/ Insert4
+    \/ Delete1
+    \/ Delete2
+    \/ Delete3
+    \/ BucketInit1
+    \/ BucketInit2
+    \/ BucketInit3
     \end{tla}
 \begin{tlatex}
-\@x{\@s{32.8} SONext \.{\defeq}}%
-\@x{\@s{32.8} \.{\lor}\@s{4.1} \.{\land} \E\, k \.{\in} PossibleKeys \.{:}}%
-\@x{\@s{45.1} \E\, v \.{\in} PossibleValues \.{:}}%
-\@x{\@s{45.1} Insert ( k ,\, v )}%
- \@x{\@s{36.89} \.{\land} {\UNCHANGED} {\langle} buckets ,\, count ,\, list
- ,\, size {\rangle}}%
-\@x{\@s{32.8} \.{\lor}\@s{4.09} \.{\land} \E\, k \.{\in} PossibleKeys \.{:}}%
-\@x{\@s{40.99} Delete ( k )}%
- \@x{\@s{36.89} \.{\land} {\UNCHANGED} {\langle} buckets ,\, count ,\, list
- ,\, size {\rangle}}%
-\@x{\@s{32.8} \.{\lor} Insert1}%
-\@x{\@s{32.8} \.{\lor} Insert2}%
-\@x{\@s{32.8} \.{\lor} Insert3}%
-\@x{\@s{32.8} \.{\lor} Insert4}%
-\@x{\@s{32.8} \.{\lor} Delete1}%
-\@x{\@s{32.8} \.{\lor} Delete2}%
-\@x{\@s{32.8} \.{\lor} Delete3}%
-\@x{\@s{32.8} \.{\lor} BucketInit1}%
-\@x{\@s{32.8} \.{\lor} BucketInit2}%
-\@x{\@s{32.8} \.{\lor} BucketInit3}%
+\@x{ SONext \.{\defeq}}%
+\@x{\@s{16.4} \.{\lor}\@s{4.1} \.{\land} \E\, k \.{\in} PossibleKeys \.{:}}%
+\@x{\@s{28.7} \E\, v \.{\in} PossibleValues \.{:}}%
+\@x{\@s{28.7} Insert ( k ,\, v )}%
+\@x{\@s{20.5} \.{\land} BagCardinality ( activeOps ) \.{<} MaxActiveOps}%
+ \@x{\@s{20.5} \.{\land} {\UNCHANGED} {\langle} buckets ,\, count ,\, list ,\,
+ size {\rangle}}%
+\@x{\@s{16.4} \.{\lor}\@s{4.10} \.{\land} \E\, k \.{\in} PossibleKeys \.{:}}%
+\@x{\@s{24.6} Delete ( k )}%
+\@x{\@s{20.5} \.{\land} BagCardinality ( activeOps ) \.{<} MaxActiveOps}%
+ \@x{\@s{20.5} \.{\land} {\UNCHANGED} {\langle} buckets ,\, count ,\, list ,\,
+ size {\rangle}}%
+\@x{\@s{16.4} \.{\lor} Insert1}%
+\@x{\@s{16.4} \.{\lor} Insert2}%
+\@x{\@s{16.4} \.{\lor} Insert3}%
+\@x{\@s{16.4} \.{\lor} Insert4}%
+\@x{\@s{16.4} \.{\lor} Delete1}%
+\@x{\@s{16.4} \.{\lor} Delete2}%
+\@x{\@s{16.4} \.{\lor} Delete3}%
+\@x{\@s{16.4} \.{\lor} BucketInit1}%
+\@x{\@s{16.4} \.{\lor} BucketInit2}%
+\@x{\@s{16.4} \.{\lor} BucketInit3}%
 \end{tlatex}
     \caption{The concurrent Next action}
     \label{fig:concurrent-next}
@@ -768,97 +864,97 @@ OperationStates ==
 
 \begin{figure}
     \begin{tla}
-(*Steps of a delete operation*)
-Delete1 ==
-    (*Start a bucket_init if necessary*)
-    \E op \in activeOps :
-        /\ op.type = {"delete"}
-        /\ op.step = 1
-        /\ IF buckets[op.key % size] = NULL
-                THEN activeOps' = (activeOps \ {op})
-                                    \union {[op EXCEPT !["step"] = op.step + 1]}
-                                    \union {[type|-> {"bucket_init"}, step |-> 1, bucket |-> op.key % size]}
-                ELSE NextStep(op)
-        /\ UNCHANGED <<list, buckets, size, count>>
-
-Delete2 ==
-    (*If the key is not there, end operation. Else, remove it*)
-    \E op \in activeOps :
-        /\ op.type = {"delete"}
-        /\ op.step = 2
-        /\  IF list[SORegularKey(op.key)] = NULL
-                THEN /\ End(op)
-                     /\ UNCHANGED list
-                ELSE /\ list' = [list EXCEPT ![SORegularKey(op.key)] = NULL]
-                     /\ NextStep(op)
-        /\ UNCHANGED <<buckets, size, count>>        
-
-Delete3 ==
-    (*Decrement count*)
-    \E op \in activeOps :
-        /\ op.type = {"delete"}
-        /\ op.step = 3
-        /\ count' = count - 1
-        /\ End(op)
-        /\ UNCHANGED <<buckets, list, size>>
+        (*Steps of a delete operation*)
+        Delete1 ==
+            (*Start a bucket_init if necessary*)
+            \E  op \in BagToSet(activeOps) :
+                /\ op.type = "delete"
+                /\ op.step = 1
+                /\ IF buckets[op.key % size] = NULL
+                        THEN activeOps' = (activeOps (-) SetToBag({op}))
+                                                (+) SetToBag({[op EXCEPT !["step"] = op.step + 1]})
+                                                (+) SetToBag({[type|-> "bucket_init", step |-> 1, bucket |-> op.key % size]})
+                        ELSE NextStep(op)
+                /\ UNCHANGED <<list, buckets, size, count>>
+        
+        Delete2 ==
+            (*If the key is not there, end operation. Else, remove it*)
+            \E  op \in BagToSet(activeOps) :
+                /\ op.type = "delete"
+                /\ op.step = 2
+                /\  IF list[SORegularKey(op.key)] = NULL
+                        THEN /\ End(op)
+                             /\ UNCHANGED list
+                        ELSE /\ list' = [list EXCEPT ![SORegularKey(op.key)] = NULL]
+                             /\ NextStep(op)
+                /\ UNCHANGED <<buckets, size, count>>        
+        
+        Delete3 ==
+            (*Decrement count*)
+            \E  op \in BagToSet(activeOps) :
+                /\ op.type = "delete"
+                /\ op.step = 3
+                /\ count' = count - 1
+                /\ End(op)
+                /\ UNCHANGED <<buckets, list, size>>
     \end{tla}
 \begin{tlatex}
-\@x{}%
+\@x{\@s{32.8}}%
 \@y{%
  Steps of a delete operation
 }%
 \@xx{}%
-\@x{ Delete1 \.{\defeq}}%
-\@x{\@s{16.4}}%
+\@x{\@s{32.8} Delete1 \.{\defeq}}%
+\@x{\@s{49.19}}%
 \@y{%
  Start a bucket_init if necessary
 }%
 \@xx{}%
-\@x{\@s{16.4} \E\, op \.{\in} activeOps \.{:}}%
-\@x{\@s{20.5} \.{\land} op . type \.{=} \{\@w{delete} \}}%
-\@x{\@s{20.5} \.{\land} op . step \.{=} 1}%
-\@x{\@s{20.5} \.{\land} {\IF} buckets [ op . key \.{\%} size ] \.{=} NULL}%
- \@x{\@s{28.7} \.{\THEN} activeOps \.{'} \.{=} ( activeOps \.{\,\backslash\,}
- \{ op \} )}%
- \@x{\@s{32.8} \.{\cup} \{ [ op {\EXCEPT} {\bang} [\@w{step} ] \.{=} op . step
- \.{+} 1 ] \}}%
- \@x{\@s{32.8} \.{\cup} \{ [ type \.{\mapsto} \{\@w{bucket\_init} \} ,\, step
- \.{\mapsto} 1 ,\, bucket \.{\mapsto} op . key \.{\%} size ] \}}%
-\@x{\@s{28.7} \.{\ELSE} NextStep ( op )}%
- \@x{\@s{20.5} \.{\land} {\UNCHANGED} {\langle} list ,\, buckets ,\, size ,\,
+\@x{\@s{49.19} \E\,\@s{4.1} op \.{\in} BagToSet ( activeOps ) \.{:}}%
+\@x{\@s{53.29} \.{\land} op . type \.{=}\@w{delete}}%
+\@x{\@s{53.29} \.{\land} op . step \.{=} 1}%
+\@x{\@s{53.29} \.{\land} {\IF} buckets [ op . key \.{\%} size ] \.{=} NULL}%
+ \@x{\@s{61.49} \.{\THEN} activeOps \.{'} \.{=} ( activeOps \.{\ominus}
+ SetToBag ( \{ op \} ) )}%
+ \@x{\@s{82.0} \.{\oplus} SetToBag ( \{ [ op {\EXCEPT} {\bang} [\@w{step} ]
+ \.{=} op . step \.{+} 1 ] \} )}%
+ \@x{\@s{82.0} \.{\oplus} SetToBag ( \{ [ type \.{\mapsto}\@w{bucket\_init}
+ ,\, step \.{\mapsto} 1 ,\, bucket \.{\mapsto} op . key \.{\%} size ] \} )}%
+\@x{\@s{61.49} \.{\ELSE} NextStep ( op )}%
+ \@x{\@s{53.29} \.{\land} {\UNCHANGED} {\langle} list ,\, buckets ,\, size ,\,
  count {\rangle}}%
 \@pvspace{8.0pt}%
-\@x{ Delete2 \.{\defeq}}%
-\@x{\@s{16.4}}%
+\@x{\@s{32.8} Delete2 \.{\defeq}}%
+\@x{\@s{49.19}}%
 \@y{%
  If the key is not there, end operation. Else, remove it
 }%
 \@xx{}%
-\@x{\@s{16.4} \E\, op \.{\in} activeOps \.{:}}%
-\@x{\@s{20.5} \.{\land} op . type \.{=} \{\@w{delete} \}}%
-\@x{\@s{20.5} \.{\land} op . step \.{=} 2}%
- \@x{\@s{20.5} \.{\land}\@s{4.1} {\IF} list [ SORegularKey ( op . key ) ]
+\@x{\@s{49.19} \E\,\@s{4.1} op \.{\in} BagToSet ( activeOps ) \.{:}}%
+\@x{\@s{53.29} \.{\land} op . type \.{=}\@w{delete}}%
+\@x{\@s{53.29} \.{\land} op . step \.{=} 2}%
+ \@x{\@s{53.29} \.{\land}\@s{4.1} {\IF} list [ SORegularKey ( op . key ) ]
  \.{=} NULL}%
-\@x{\@s{28.7} \.{\THEN} \.{\land} End ( op )}%
-\@x{\@s{28.7} \.{\land} {\UNCHANGED} list}%
- \@x{\@s{28.7} \.{\ELSE} \.{\land} list \.{'} \.{=} [ list {\EXCEPT} {\bang} [
- SORegularKey ( op . key ) ] \.{=} NULL ]}%
-\@x{\@s{28.7} \.{\land} NextStep ( op )}%
- \@x{\@s{20.5} \.{\land} {\UNCHANGED} {\langle} buckets ,\, size ,\, count
+\@x{\@s{61.49} \.{\THEN} \.{\land} End ( op )}%
+\@x{\@s{61.49} \.{\land} {\UNCHANGED} list}%
+ \@x{\@s{61.49} \.{\ELSE} \.{\land} list \.{'} \.{=} [ list {\EXCEPT} {\bang}
+ [ SORegularKey ( op . key ) ] \.{=} NULL ]}%
+\@x{\@s{61.49} \.{\land} NextStep ( op )}%
+ \@x{\@s{53.29} \.{\land} {\UNCHANGED} {\langle} buckets ,\, size ,\, count
  {\rangle}}%
 \@pvspace{8.0pt}%
-\@x{ Delete3 \.{\defeq}}%
-\@x{\@s{16.4}}%
+\@x{\@s{32.8} Delete3 \.{\defeq}}%
+\@x{\@s{49.19}}%
 \@y{%
  Decrement count
 }%
 \@xx{}%
-\@x{\@s{16.4} \E\, op \.{\in} activeOps \.{:}}%
-\@x{\@s{20.5} \.{\land} op . type \.{=} \{\@w{delete} \}}%
-\@x{\@s{20.5} \.{\land} op . step \.{=} 3}%
-\@x{\@s{20.5} \.{\land} count \.{'} \.{=} count \.{-} 1}%
-\@x{\@s{20.5} \.{\land} End ( op )}%
- \@x{\@s{20.5} \.{\land} {\UNCHANGED} {\langle} buckets ,\, list ,\, size
+\@x{\@s{49.19} \E\,\@s{4.1} op \.{\in} BagToSet ( activeOps ) \.{:}}%
+\@x{\@s{53.29} \.{\land} op . type \.{=}\@w{delete}}%
+\@x{\@s{53.29} \.{\land} op . step \.{=} 3}%
+\@x{\@s{53.29} \.{\land} count \.{'} \.{=} count \.{-} 1}%
+\@x{\@s{53.29} \.{\land} End ( op )}%
+ \@x{\@s{53.29} \.{\land} {\UNCHANGED} {\langle} buckets ,\, list ,\, size
  {\rangle}}%
 \end{tlatex}
     \caption{The steps of a \textit{Delete} operation}
@@ -868,7 +964,7 @@ The specification described in \autoref{subsec:non-concurrent} describes the wor
 \\\\
 To specify concurrent working, a more granular specification is needed. In a complete description each step would be a single machine instruction, but this is both infeasible and counterproductive as such a specification is no more useful for verification than the program itself.
 \\\\
-Instead, we identify the steps in the each operation that change the shared state of the system and make those the steps of our specification. This results in each operation (\textit{Insert, Remove}, and \textit{Bucket Init}) being split into several steps. We then maintain a set of active operations of the form shown in \autoref{fig:op-structure} and step through them as shown in \autoref{fig:op-progress}. The result is the next-step action shown in \autoref{fig:concurrent-next}. This disjunction specifies that each next step can either start an insert or remove operation, or perform a single step in an active operation.
+Instead, we identify the steps in the each operation that change the shared state of the system and make those the steps of our specification. This results in each operation (\textit{Insert, Remove}, and \textit{Bucket Init}) being split into several steps. We then maintain a multiset (called a "bag") of active operations of the form shown in \autoref{fig:op-structure} and step through them as shown in \autoref{fig:op-progress}. The result is the next-step action shown in \autoref{fig:concurrent-next}. This disjunction specifies that each next step can either start an insert or remove operation, or perform a single step in an active operation.
 \\\\
 To show the structure of a single operation in the concurrent specification, we will look at \textit{Delete} (\autoref{fig:op-delete}). \textit{Delete}1 checks if the relevant bucket is initialized and starts a bucket\_init operation if it is not. Because starting a new operation and advancing the current operation both modify the state of \textit{activeOps}, a union of both changes is needed. Also note that this step is enabled iff there exists an operation with type "delete" and step 1 in the set of active operations. \textit{Delete}2 removes a node from the list. This step is assumed to be atomic by our assumption that an atomic list implementation is available. Finally \textit{Delete}3 decrements count. Note that the previous step did not advance if a node was not removed, so the decrement step will always be taken if a delete operation has reached step 3.
 
@@ -1071,7 +1167,7 @@ OperationStates ==
  bucket \.{:} 0 \.{\dotdot} ( MaxSize \.{-} 1 ) ,\, id \.{:} 0 \.{\dotdot}
  MaxID ]}%
 \end{tlatex}
-\caption{The failure invariants as TLA properties}
+\caption{The failure invariants as TLA predicates}
 \label{fig:fail-invariants}
 \end{figure}
 \\\\
@@ -1177,7 +1273,7 @@ In the concurrent specification each invariant was checked in isolation, again i
     \label{tab:errors}
 \end{table}
 \\
-\Autoref{tab:SOConcurrent} shows the results of checking \textit{InsertSucceeds} and \textit{DeleteSucceeds}. Both exhaust the available memory attempting to check a map with 4 possible keys and 3 possible values in approximately 30 minutes. However, both hold for a smaller map with only 2 possible values and this completed in only a few minutes. Also note that \textit{DeleteSucceeds} runs out of memory having explored all most 5 times the number of unique states. The descrepancy in space explored is likely because an insert operation takes 4 steps, while a delete takes only 3 leading to shorter behavior traces for deletes.
+\Autoref{tab:SOConcurrent} shows the results of checking \textit{InsertSucceeds} and \textit{DeleteSucceeds}. Both exhaust the available memory attempting to check a map with 4 possible keys and 3 possible values in approximately 30 minutes. However, both hold for a smaller map with only 2 possible values and this completed in only a few minutes. Also note that \textit{DeleteSucceeds} runs out of memory having explored all most 5 times the number of unique states. The descrepancy in space explored is likely because an insert operaeration takes 4 steps, while a delete takes only 3 leading to shorter behavior traces for deletes.
 \\\\
 \Autoref{tab:SOConcurrent} also shows the result of checking \textit{BucketsInitialized} on the same specification. Since \textit{BucektsInitialized} is a safety property, memory is not consumed as quickly as with the earlier liveness properties and \textit{BucektsInitialized} was shown to hold for up to 4 keys and 5 values. Additionally this property was checked for larger numbers of concurrent operations. Note that a map with 4 keys and 2 values was fully explored for 2 concurrent operations in 22 seconds, but took 14 minutes with 3 concurrent operations. 4 concurrent operations forced a reboot after 26 minutes.
 \\\\
@@ -1223,7 +1319,7 @@ For the final two invariants it was necessary to use a slightly different specif
 %     \item liveness properties tend to quickly exceed Java's GC limit
 % \end{itemize}
 
-\chapter{Concluding Remarks}
+\chapter{Concluding Remarks}\label{ch:concluding-remarks}
 In this chapter we first discuss the results of model checking in relation to the problem statement, then follows a discussion of the experience of writing and testing the specification, and the lessons learned in this process. Finally we conclude our work and answer the problem statement.
 
 
@@ -1236,10 +1332,6 @@ In the case of \textit{InsertFails} and \textit{DeleteFails} the need to differe
 \\\\
 One issue with model checking specifications as a way to prove the correctness of programs is the correctness of the model checking. The problem is two-fold: how certain can we be that the model checker does its job correctly; and how certain can we be that the specification is really specifying what we want it to?
 \\\\
-The correctness of the TLC model checker is outside the scope of this text, but the software is open source~\cite{TLAplus} and has been used in industry with success~\cite{Amazon2015, Lamport-Batson2002}.
-\\\\
-On the other hand, the specification is very much within the scope of this project. For a specification to be helpful in proving correctness of a system it is important that it specifies the system accurately, and that the properties checked by the model checker are precisely the properties we wish to show in the system -- both require some human ingenuity. While developing the specification, I often tested properties or invariants in order to check that the specification adhered to expectations. Both positive results -- when invariants believed to be true hold, or invariants believed to be false are shown to be false -- and negative results -- when invariants believed to hold are violated -- helped to further refine the specification or correct errors.
-\\\\
 The final specification behaves as expected along several axes. Type correctness holds across all the tested invariants (though it was not checked along with liveness properties to reduce computational load), the size of the bucket array and the set of active operations both stay within bounds, and additional possible values increases the number of unique states without increasing the depth of the state space while an increase in the number of possible keys increases the depth.
 \\\\
 A surprising feature is the sheer size of the state space. Even for two possible keys and two possible values, the state space of the concurrent specification is surprisingly large (10,083 unique states). One way to evaluate the specification would be a calculation of the expected state space of the system with the same parameters. If such a calculation agreed with the results of model checking it would increase our confidence in the specification accurately describing the system.
@@ -1249,21 +1341,19 @@ The results of model checking do not conclusively prove correctness because they
 \\\\
 Model checking with TLC can be used to exhaustively show the correctness of a structure on a small subset of the sample space. The results on this subset correspond to the properties formally proven by Shalev et al. with the exception of operation failures which proved impossible to check with the computational resources available.
 
-\section{Implementation Issues}
+\section{Implementation Experiences}
 % I learned a lot, but the output does not prove anything about concurrent correctness
 % structure of the spec follows the structure of the implementation, which does not lend itself to logical state transitions.
 % should have made a more conscious decision about step size
 % "correct" thinking: what constitutes the state? when does that change?
 % implementation (the proof kind) looked to be elegant, but introduced unwanted complexity
-In this section I will explain some of the choices made in the development of the specification and discuss the experiences and lessons learned from the process. The first part discusses the non-concurrent specification and its shortcomings, and is followed by a discussion of experiences from the concurrent specification and the process as a whole. 
+In this section we will explain some of the choices made in the development of the specification and discuss the experiences and lessons learned from the process. The first part discusses the non-concurrent specification and its shortcomings, and is followed by a discussion of experiences from the concurrent specification and the process as a whole. 
 \\\\
-The first attempt at writing a specification served as a learning tool for the TLA+ language, but did not produce a useful specification for the purpose of proving correctness in a concurrent setting. The structure of the specification was based on the structure of an implementation in that actions correspond to the \textit{insert}, \textit{delete} and \textit{bucket init} functions in Shalev et al.'s pseudocode. Such a structure brings with it the implicit assumption that the functions are linearizable since one action corresponds to one state transition.
+The non-concurrent specification did not prove useful for the purpose of proving correctness in a concurrent setting. The structure of the specification was based on the structure of an implementation in that actions correspond to the \textit{insert}, \textit{delete} and \textit{bucket init} functions in Shalev et al.'s pseudocode. Such a structure brings with it the implicit assumption that the functions are linearizable since one action corresponds to one state transition.
 \\\\
 The attempt to show correctness through implementation also posed difficulties. The idealized hashmap specification proved impossible to directly map to the split-order specification because a \textit{find} operation may result in a bucket needing to be initialized and thus can not be used directly in a refinement mapping. Instead we introduced a set of auxiliary variables~\cite{Lamport2019a} and maintained an idealized map that was updated in atomic steps to implement the Hashmap specification. The updates loosely correspond to a \textit{find} operation and the correctness of this idealized map does seem to correspond to a correct underlying structure (albeit at an earlier state), but these auxillary variables introduce additional complexity to the spec and do not resolve the underlying issue of assumed linearizability.
 \\\\
-I will now discuss the lessons learned from writing the concurrent specification and errors or experiences that lead to these lessons.
-\\\\
-Make sure early on that the purpose of the specification is known and keep this in mind when designing it. On several occasions I discovered that the specification I had written was not suitable for its purpose. First, the non-concurrent spec proved difficult to map to an abstract hashmap spec. Then, the concurrent spec turned out to be unsuitable for showing the failure of operations because it did not differentiate between individual operations and so could not show that a specific operation was aborted. In both cases it would have been useful to be clear about precisely what I wished to show at an earlier state and plan the specification accordingly.
+It is useful to clearly decide on the purpose of the specification as early as possible. On several occasions we discovered that the specification was not suitable for its purpose. First, the non-concurrent spec proved difficult to map to an abstract hashmap spec. Then, the concurrent spec turned out to be unsuitable for showing the failure of operations because it did not differentiate between individual operations and so could not show that a specific operation was aborted. In both cases it would have been useful to be clear about precisely what we wished to show at an earlier state and plan the specification accordingly.
 \\\\
 On a similar note, it is important to choose the step size of a specification as early as possible. While the plan was to gradually granularize the specification and weaken assumptions of linearizability, it was much easier to write a specification having defined the distance between any two steps of the behavior. In the concurrent specification this was done by finding the variables whose changes we need to track and making each change a single step. In the non-concurrent specification no such considerations were made, leading to a specification that was not suited to show the working of a concurrent system at all. Being clear and conscious about the choice of step size is also adviced in the TLA+ video course~\cite{Lamport_video_2019}.
 \\\\
@@ -1271,15 +1361,17 @@ It is very easy to subtly mis-state model checking properties, especially livene
 \\\\
 A smaller trap is accidental infinities. Especially when working with sets it is possible to accidentally create an infinite state space. The set of active operations in the concurrent specification resulted in such an error. Without imposing an upper bound on the number of active operations, the specification allowed an infinite number of unique states by appending more and more active operations, but never progressing them.
 \\\\
+One way to solve these errors is to test expected properties and invariants during development. Both positive results -- when invariants believed to be true hold, or invariants believed to be false are shown to be false -- and negative results -- when invariants believed to hold are violated -- helped to further refine the specification and correct errors.
+
 \section{The Usefulness of Formal Specification}
-Finally, a note on the usefulness of writing and model checking specifications: Sometimes formal specification can uncover rare or complex errors in algorithms and protocols~\cite{Lund2019, hun som brukte Alloy?}, but in this case it did not. Instead, my result may slightly increase confidence in the correctness of Shalev et al.'s hashmap, but arguably no more than a working implementation passing tests. That increase is a poor return on investment, especially if the user has to learn the tools.
+Finally, a note on the usefulness of writing and model checking specifications: Sometimes formal specification can uncover rare or complex errors in algorithms and protocols~\cite{Lund2019, Zave2012}, but in this case it did not. Instead, my result may slightly increase confidence in the correctness of Shalev et al.'s hashmap, but arguably no more than a working implementation passing tests. That increase is a poor return on investment, especially if the user has to learn the tools.
 \\\\
 It seems that formal specification and model checking has two uses:
 \begin{enumerate}
     \item as a way to produce minimal examples of a suspected error, and \label{point:error}
     \item as a development tool for algorithms and protocols \label{point:dev}
 \end{enumerate}
-The first case, exemplified by [hun med Alloy på Chord igjen], is useful because it lets developers find and show errors in the algorithms, rather than in programs or implementations. In the second case, a specification is used to test and improve an algorithm or protocol under development without resorting to implementation. This is especially useful when an implementation requires hardware~\cite{Lamport-Batson2002} or is prohibitively large in scale~\cite{Amazon2015} and lets developers iterate on designs while ensuring their correctness in a similar way to test-driven development for implementation.
+The first case is useful because it lets developers find and show errors in the algorithms, rather than in programs or implementations. In the second case, a specification is used to test and improve an algorithm or protocol under development without resorting to implementation. This is especially useful when an implementation requires hardware~\cite{Lamport-Batson2002} or is prohibitively large in scale~\cite{Amazon2015} and lets developers iterate on designs while ensuring their correctness in a similar way to test-driven development for implementation.
 \section{Conclusion}
 In this project a formal specification of Shalev et al.'s lock free hashmap implementation has been written in TLA+ and the TLC model checker has been used to demonstrate their claimed invariants on state spaces with up to 4 keys, 16 possible values and 3 concurrent processes.
 \\\\
