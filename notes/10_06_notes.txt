@@ -1,0 +1,25 @@
+Problem statement:	skriv litt rundt, fjern "Furthermore..." eller flytt til method/discussion
+			kanskje kombiner dem?
+			konkretiser om TLA+
+			make the problem statement the concrete problem, then discuss model checking etc.
+			beskrivelse -> problem statement -> tolkning
+
+Background: make model checking 2.1 and write a paragraph or two of intro
+Specification:  intro -> tilpass til concurrent/non-concurrent specs
+		kanskje skriv noe om hva resultatet er
+
+Results: intro -> "nå skal vi snakke om..."
+	 4.3 rename? 
+
+Implementation experiences: maybe name the errors and give more structure. If this is a main contribution, make separate section. Maybe rename to Lessons Learned
+
+Summaries i slutten av kapitler: kanskje for komplekse ting (ch. 3)
+Amazon stuff -> kanskje til konklusjon/diskusjon
+Future works?
+
+ABSTRACT: do it
+Make sure bibliography is in index
+
+Fokus: hva har vi gjort? hva er resultatet? fremhev det jeg synes er viktig
+	FOR HVERT KAPITTEL
+	emphasize state space explosion	
