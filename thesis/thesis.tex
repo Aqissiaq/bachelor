@@ -3,6 +3,7 @@
 \usepackage{enumitem}
 \usepackage{/usr/local/texlive/2019/texmf-dist/tex/latex/tlatex/tlatex}
 \usepackage[backend=biber, sorting=none]{biblatex}
+\usepackage[nottoc,numbib]{tocbibind}
 \addbibresource{sources.bib}
 \graphicspath{{./figures/}}
 
@@ -32,6 +33,10 @@
 \end{epigraph}
 
 \tableofcontents
+
+\begin{abstract}
+    This is the abstract
+\end{abstract}
 
 \mainmatter
 
@@ -1341,7 +1346,7 @@ The results of model checking do not conclusively prove correctness because they
 \\\\
 Model checking with TLC can be used to exhaustively show the correctness of a structure on a small subset of the sample space. The results on this subset correspond to the properties formally proven by Shalev et al. with the exception of operation failures which proved impossible to check with the computational resources available.
 
-\section{Implementation Experiences}
+\section{Lessons Learned}
 % I learned a lot, but the output does not prove anything about concurrent correctness
 % structure of the spec follows the structure of the implementation, which does not lend itself to logical state transitions.
 % should have made a more conscious decision about step size
@@ -1388,10 +1393,10 @@ Additionally the experiences of formal specification using TLA+ and the TLC mode
 We conclude that model checking gives some increased confidence in the correctness of Shalev et al.'s split-order hashmap, but that it is poorly suited to showing liveness properties in the absence of significant memory resources.
 \\\\
 Finally, we note that model checking may have more value as a development tool for protocols, data structures and algorithms than as a way to prove correctness of existing programs.
+
 \backmatter
+\phantomsection
+\addcontentsline{toc}{chapter}{Bibliography}
 \printbibliography{}
-% \appendix
-% \addcontentsline{toc}{chapter}{Appendix}
-% \addtocontents{toc}{\protect\contentsline{chapter}{Appendix:}{}}
 \end{document}
 
