@@ -35,7 +35,15 @@
 \tableofcontents
 
 \begin{abstract}
-    This is the abstract
+    %purpose/why?
+    Concurrent systems are increasingly important in a variety of application domains, but concurrent algorithms and data structures are difficult to design, debug and verify. Formal verification with model checkers is one way to verify concurrent structures by creating a specification of the structure and demonstrating properties by exhaustively checking possible states.\\\\
+    One important data structure is the extensible hashmap, and Shalev et al.~\cite{Shalev2006} present a novel lock-free way to implement them.
+    \\\\%arguments and claims/what?
+    We present a formal specification of Shalev et al.'s lock-free hashmap in a concurrent setting and demonstrate that their claimed invariants hold for a subset of the state space using a model checker. We also discuss the merits of this demonstration and lessons learned from the process.
+    \\\\%method/how?
+    We produce 4 specifications: a non-concurrent version of the hashmap structure, an idealized hashmap used to check the non-concurrent version, and two versions of the structure used to verify invariants in a concurrent setting. The specifications are written in TLA+ and checked using the TLC model checker.
+    \\\\%conclusions
+    We conclude that our formal verification gives increased confidence in the correctness of Shalev et al.'s hashmap, but that the method cannot be used as conclusive proof on its own. We also present three concrete lessons about formal verification motivated by experiences during development of the specification; decide on the purpose of a specification early, test assumed invariants, and choose step size early and deliberately.
 \end{abstract}
 
 \mainmatter
@@ -78,7 +86,8 @@ Showing the correctness of Shalev et al.'s hashmap structure requires two things
     \item that the specification of the structure is correct and
     \item that the behavior of the model checker is correct.
 \end{itemize}
-The latter is outside the scope of this project, but the TLC model checker is open source~\cite{TLAplus} and has been used in industry with success~\cite{Amazon2015, Lamport-Batson2002}. On the other hand, the specification is very much within the scope of this project. For a specification to be helpful in proving correctness of a system it is important that it specifies the system accurately, and that the properties checked by the model checker are precisely the properties we wish to show in the system. This is achieved through an explanation of the specification in \autoref{ch:specification} and the results are discussed in \autoref{ch:concluding-remarks}.
+The latter is outside the scope of this project, but the TLC model checker is open source~\cite{TLAplus} and has been used in industry with success~\cite{Amazon2015, Lamport-Batson2002}.\\\\
+On the other hand, the specification is very much within the scope of this project. For a specification to be helpful in proving correctness of a system it is important that it specifies the system accurately, and that the properties checked by the model checker are precisely the properties we wish to show in the system. This is achieved through an explanation of the specification in \autoref{ch:specification} and the results are discussed in \autoref{ch:concluding-remarks}.
 
 \section{Outline}
 \begin{enumerate}[label={}]
@@ -292,7 +301,7 @@ Additionally TLA+ includes the temporal operators $\Box$ and $\Diamond$ meaning 
 Finally, implementation in TLA+ is implication. If specification A implements specification B this is exactly equivalent to $A \implies B$. If A is true on a behavior, then B is also true on that behavior.
 
 \section{Split-Ordered List Hashmap}\label{sec:hashmap}
-Shalev et al.~\cite{Shalev2006} present the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
+This section provides a description of Shalev et al.'s split-order hashmap structure~\cite{Shalev2006} -- the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
 \\\\
 Hashmaps are a key building block in many important systems [citation needed], but are difficult to implement concurrently. In particular, the resizing (extending) of the table is difficult to do atomically because at the very least a node must be moved from one list to another. In order to avoid conflicts and loss of data in this process some overhead is required which impacts performance.
 \\\\
@@ -1314,7 +1323,7 @@ In the concurrent specification each invariant was checked in isolation, again i
         & 2 & 4 & 2 & 406 & 387,645,300& 00:54:33 &\\
         & 4 & 2 & 2 & 153 & 665,993,030& 04:22:12 &\\
         \hline
-        \textit{InsertFails} & 2 & 2 & 2 & >20 & >64,000 & >00:01:07 & 2\\
+        \textit{InsertFails} & 2 & 2 & 2 & >20 & >64,000  & >00:01:07 & 2\\
         \hline
         \textit{DeleteFails} & 2 & 2 & 2 & >25 & >153,370& >00:02:12 & 1\\ 
         \hline
@@ -1373,7 +1382,7 @@ The three specific lessons:
 \begin{enumerate}[label=\textbf{\arabic*}.]
     \item decide on the purpose of the specification as early as possible
     \item test assumed invariants and try to break them
-    \item choose step size early and intentionally
+    \item choose step size early and deliberately
 \end{enumerate}
 
 \paragraph{1.}
