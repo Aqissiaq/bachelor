@@ -54,9 +54,11 @@ Early solutions to the problem of proving correctness include Hoare~\cite{Hoare1
 Building on the work in temporal logics, model checkers seek to minimize the human labor and ingenuity needed to prove correctness. This is done by specifying a model using some system of logic and then letting a model checker exhaustively survey the possible states of the system. This automates the process of proving correctness. One such model checker is the TLC model checker based on Lamport's TLA and incorporated in the TLA+ IDE.
 
 \section{Problem Statement}\label{sec:problem-statement}
-Shalev et al.'s split-ordered list design is a correct extensible hashmap for concurrent systems.
-\\\\
-Furthermore it is possible to check this using a formal model checker, and the results of this will correspond to the properties proven by Shalev et al.
+In this project we work with TLA+ and the TLC model checker to specify a novel concurrent hashmap structure due to Shalev et al.~\cite{Shalev2006}. The goal is to prove the following problem statement:
+\begin{quote}
+    Shalev et al.'s split-ordered list design is a correct extensible hashmap for concurrent systems.
+\end{quote}
+Specifically we intend to show that a TLA+ specification displays the invariants Shalev et al. claim for their structure using the TLC model checker. In demonstrating this we will also explore and discuss the use of formal verification for concurrent data structures.
 
 \section{Method}
 In order to demonstrate the correctness of the hashmap, we specify its behavior using TLA+~\cite{Lamport_specifying_2002} and use the TLC model checker in the TLA+ toolbox~\cite{TLAplus} to test the claimed invariants.
@@ -1410,12 +1412,10 @@ In this project a formal specification of Shalev et al.'s lock free hashmap impl
 We recall the problem statement from \autoref{sec:problem-statement}:
 \begin{quotation}
     Shalev et al.'s split-ordered list design is a correct extensible hashmap for concurrent systems.
-    \\\\
-    Furthermore it is possible to check this using a formal model checker, and the results of this will correspond to the properties proven by Shalev et al.
 \end{quotation}
 The results of model checking confirmed the claimed invariants of Shalev et al.'s design for maps with up to four keys and two possible values, with the exception of failure conditions for \textit{Delete} and \textit{Insert}. The testing was limited by the memory required to test liveness properties.
 \\\\
-Additionally the experiences of formal specification using TLA+ and the TLC model checker were discussed and alternative uses proposed.
+Additionally the use of formal specification in TLA+ and the TLC model checker were discussed and three lessons were formulated based on concrete experiences during the process.
 \\\\
 We conclude that model checking gives increased confidence in the correctness of Shalev et al.'s split-order hashmap, but that it is poorly suited to showing liveness properties in the absence of significant memory resources.
 \\\\
