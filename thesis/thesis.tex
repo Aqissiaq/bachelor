@@ -88,6 +88,9 @@ The latter is outside the scope of this project, but the TLC model checker is op
 
 
 \chapter{Background}\label{ch:background}
+This section presents relevant prior work and background on model checking, TLA+ and Shalev et al.'s hashmap structure. \Autoref{sec:model-checking} briefly describes the development and use of formal verification and model checkers, \autoref{sec:TL} recounts Pnueli's~\cite{Pnueli1977} early work on temporal logic, and \autoref{sec:TLA+} covers the syntax and structure of TLA+. Finally \autoref{sec:hashmap} describes Shalev et al.'s data structure.
+
+\section{Model Checking}\label{sec:model-checking}
 \paragraph{Model Checking: Algorithmic Verification and Debugging~\cite{Clarke2009}}
 In the Turing Lecture by the winners of the 2007 Turing Award, Edmund Clarke, Allen Emerson and Joseph Sifakis they describe the develpment and use of model checkers as a verification method for computer systems. Previous efforts to prove correctness had been focused on formal proofs which have three key shortcomings:
 \begin{enumerate}
@@ -201,6 +204,7 @@ This lets us describe useful properties such as
     \item $p \implies F(q)$ -- if $p$ is true now, then at some point in the future $q$ will be true.
     \item $G(p \implies F(q))$ -- whenever $p$ is true it will eventually be followed by a state in which $q$ is true. (this is equivalent to $p \eventually q$)     
 \end{itemize}
+
 \section{TLA+}\label{sec:TLA+}
 This section introduces the structure and syntax of TLA+ necessary to follow the description of specifications in the following chapter.
 \\\\
@@ -284,7 +288,7 @@ means that the new value list is the same as the old, except the value at index 
 Additionally TLA+ includes the temporal operators $\Box$ and $\Diamond$ meaning always and eventually, which correspond to Pnueli's \textbf{G}lobal and \textbf{F}uture operators as well as $\Diamond\Box$ which means the predicate eventually becomes true and then stays true forever.
 \\\\
 Finally, implementation in TLA+ is implication. If specification A implements specification B this is exactly equivalent to $A \implies B$. If A is true on a behavior, then B is also true on that behavior.
-%Needs to cover implementation of one spec by another
+
 \section{Split-Ordered List Hashmap}\label{sec:hashmap}
 Shalev et al.~\cite{Shalev2006} present the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
 \\\\
@@ -974,6 +978,8 @@ Instead, we identify the steps in the each operation that change the shared stat
 To show the structure of a single operation in the concurrent specification, we will look at \textit{Delete} (\autoref{fig:op-delete}). \textit{Delete}1 checks if the relevant bucket is initialized and starts a bucket\_init operation if it is not. Because starting a new operation and advancing the current operation both modify the state of \textit{activeOps}, a union of both changes is needed. Also note that this step is enabled iff there exists an operation with type "delete" and step 1 in the set of active operations. \textit{Delete}2 removes a node from the list. This step is assumed to be atomic by our assumption that an atomic list implementation is available. Finally \textit{Delete}3 decrements count. Note that the previous step did not advance if a node was not removed, so the decrement step will always be taken if a delete operation has reached step 3.
 
 \chapter{Results}\label{ch:results}
+In this section we present the process and results of model checking the specification. First we describe the method of checking and the properties checked by the model. Then we present the quantitative results along with commentary on these results. \Autoref{sec:tech-details} covers the technical details of this process.
+
 \section{Method}
 To demonstrate the invariants claimed by Shalev et al.~\cite{Shalev2006} we use the TLC model checker to test the specifications outlined in \autoref{sec:spec-goals}. The first specification (\autoref{subsec:non-concurrent}) was tested by setting \textit{HashmapSpec} as a property of the model, thus showing that SplitOrder implements the generic hashmap specification.
 \\\\
@@ -1178,12 +1184,14 @@ OperationStates ==
 \\\\
 Having formalized these invariants we are left with one safety property and four liveness properties, as well as the non-concurrent specification.
 
-\section{Technical Details}
+\section{Technical Details}\label{sec:tech-details}
 Tests were run with version 2.15 of the TLC model checker on a Intel(R) Core i5-8250U CPU with 8~GiB of memory and 250~GiB of hard drive space running Ubuntu 18.04. TLC was set to use 8 worker threads and 6~GiB of memory.
 \\\\
 Unless otherwise noted, the maximum size of the map was equal to the number of possible keys and the load factor was set to half of the maximum size.
 
-\section{Results}
+\section{Quantitative Analysis}
+This section covers the results of model checking for three different specifications. Firstly the coarse non-concurrent specification and then the concurrent specification with and without operation IDs.
+
 \subsection{Non-concurrent specification}
 By setting \textit{HashmapSpec} as a property while checking \textit{SplitOrder}, the model checker tests if the latter implements the former. The implementation was checked for increasing sizes of the map, with results reported in \autoref{tab:SplitOrder}.
 \begin{table}[h]
@@ -1352,24 +1360,43 @@ Model checking with TLC can be used to exhaustively show the correctness of a st
 % should have made a more conscious decision about step size
 % "correct" thinking: what constitutes the state? when does that change?
 % implementation (the proof kind) looked to be elegant, but introduced unwanted complexity
-In this section we will explain some of the choices made in the development of the specification and discuss the experiences and lessons learned from the process. The first part discusses the non-concurrent specification and its shortcomings, and is followed by a discussion of experiences from the concurrent specification and the process as a whole. 
+In this section we will explain some of the choices made in the development of the specification and discuss the experiences and lessons learned from the process. We present three specific lessons from this project along with concrete experiences and possible solutions.
 \\\\
-The non-concurrent specification did not prove useful for the purpose of proving correctness in a concurrent setting. The structure of the specification was based on the structure of an implementation in that actions correspond to the \textit{insert}, \textit{delete} and \textit{bucket init} functions in Shalev et al.'s pseudocode. Such a structure brings with it the implicit assumption that the functions are linearizable since one action corresponds to one state transition.
-\\\\
-The attempt to show correctness through implementation also posed difficulties. The idealized hashmap specification proved impossible to directly map to the split-order specification because a \textit{find} operation may result in a bucket needing to be initialized and thus can not be used directly in a refinement mapping. Instead we introduced a set of auxiliary variables~\cite{Lamport2019a} and maintained an idealized map that was updated in atomic steps to implement the Hashmap specification. The updates loosely correspond to a \textit{find} operation and the correctness of this idealized map does seem to correspond to a correct underlying structure (albeit at an earlier state), but these auxillary variables introduce additional complexity to the spec and do not resolve the underlying issue of assumed linearizability.
-\\\\
+% plan:
+%   - move the implementation paragraph to the end and rewrite
+%   - rewrite non-concurrent specification critique to clearly articulate the problem and relate to lesson 1.
+%   - number the other two lessons
+%   - maybe number infinities and mis-stated properties?
+The three specific lessons:
+\begin{enumerate}[label=\textbf{\arabic*}.]
+    \item decide on the purpose of the specification as early as possible
+    \item test assumed invariants and try to break them
+    \item choose step size early and intentionally
+\end{enumerate}
+
+\paragraph{1.}
 It is useful to clearly decide on the purpose of the specification as early as possible. On several occasions we discovered that the specification was not suitable for its purpose. First, the non-concurrent spec proved difficult to map to an abstract hashmap spec. Then, the concurrent spec turned out to be unsuitable for showing the failure of operations because it did not differentiate between individual operations and so could not show that a specific operation was aborted. In both cases it would have been useful to be clear about precisely what we wished to show at an earlier state and plan the specification accordingly.
 \\\\
-On a similar note, it is important to choose the step size of a specification as early as possible. While the plan was to gradually granularize the specification and weaken assumptions of linearizability, it was much easier to write a specification having defined the distance between any two steps of the behavior. In the concurrent specification this was done by finding the variables whose changes we need to track and making each change a single step. In the non-concurrent specification no such considerations were made, leading to a specification that was not suited to show the working of a concurrent system at all. Being clear and conscious about the choice of step size is also adviced in the TLA+ video course~\cite{Lamport_video_2019}.
+The clearest example of this error was our attempt to show the correct behavior of a non-concurrent specification through implementation. The idealized hashmap specification proved impossible to directly map to the SplitOrder specification because such a mapping would involve a \textit{find} operation which may result in a bucket having to be initialized and this sort of two-level action is not permitted in refinement mappings in TLA+. Instead we introduced a set of auxillary variables~\cite{Lamport2019a} which maintain an idealized map that is updated in atomic steps. While auxillary variables are a possible solution, they introduced additional complexity and made it more difficult to see that the specification accurately describes the structure.
 \\\\
-It is very easy to subtly mis-state model checking properties, especially liveness properties. When writing the properties \textit{DeleteFails} and \textit{InsertFails} the first tries were tautologically true because they simply described the operation having terminated at \textbf{some} later stage, which holds whether the operation aborts or completes. Another attempt proved to always be false because operations were not individually distinguished and so the success of a later, identical operation would cause the property to fail. Such errors are easy to make, especially for beginners (like the author), and especially the former is very difficult to spot. The errors in \textit{DeleteFails} and \textit{InsertFails} were found by making changes that should cause the property to fail -- in this case never aborting an operation -- and seeing that it still held. This method requires a healthy distrust of ones own work.
+Additionally this initial non-concurrent specification was not well suited to showing the precise invariants claimed by Shalev et al. and was difficult to adapt to a concurrent version. Because the structure of the specification was modeled after pseudocode, and therefore divided into presumed linearizable functions, adapting it to describe a concurrent setting required a full rewrite.
 \\\\
-A smaller trap is accidental infinities. Especially when working with sets it is possible to accidentally create an infinite state space. The set of active operations in the concurrent specification resulted in such an error. Without imposing an upper bound on the number of active operations, the specification allowed an infinite number of unique states by appending more and more active operations, but never progressing them.
+Finally, neither specification was well suited to showing failure invariants: the claim that certain operations would always abort. In the non-concurrent case this was because each operation was a single action and so could not abort at all, and in the concurrent case it was because an operation was not distinguishable from a later operation with the same arguments. While the concurrent specification was relatively easy to expand with operation IDs, it was still unable to demonstrate these properties due to state space explosion. It is possible that a specification that was designed from the beginning with these properties in mind would have been better suited to demonstrate them.
+\paragraph{2.} %make these into specific examples of it being useful to assert properties and scrap that last little paragraph. also the set-> multiset transition
+A useful tool when writing specifications in TLA+ is making and testing assumptions. If you think something is true about the specification, the assumption can be written as a property or invariant and checked using the model checker. Both positive results -- when invariants believed to be true hold, or invariants believed to be false are shown to be false -- and negative results -- when invariants believed to hold are violated -- can be extremely useful. It is also useful to purposefully attempt to violate assumptions by changing the specification.
 \\\\
-One way to solve these errors is to test expected properties and invariants during development. Both positive results -- when invariants believed to be true hold, or invariants believed to be false are shown to be false -- and negative results -- when invariants believed to hold are violated -- helped to further refine the specification and correct errors.
+One such case occured in early testing of the \textit{DeleteFails} and \textit{InsertFails} properties. An early attempt was tautologically true because it described operations terminating at \textbf{some} later stage, which was true whether the operation aborted or completed. This error was discovered by removing the terminating clause from the specification and observing that the property still appeared to hold. False positives like this error are very difficult to find without making changes to the specification and attempting to violate assumptions.
+\\\\
+Another error occured with an early version of the concurrent specification. Because the active operations were kept in a set, there could never be two identical operations active at the same time. In practice this meant one operation would "disappear" if another identical operation was initiated. The error was discovered because it lead to an ever increasing \textit{count} when \textit{Delete} operations disappeared. By checking the invariant $count \; \leq \; 4$ on a model with only four possible values, an error trace showing this error was obtained. As a result, the specification was changed to use a multiset (Bag) to allow for multiple copies of the same operation.
+\paragraph{3.}%be clearer about what "step size" means and how it was done
+Finally, it is advicable to decide on the "step size" of the specification as early as possible.~\cite{Lamport_video_2019}. By step size we mean roughly the number of variables that change in each action. For the concurrent specification this was done by identifying the variables that constitute the state of the map: the list, the buckets, size, and count; and then making each change to one of these a single step. Making this choice deliberately and clearly made it much easier to write the concurrent specification than the non-concurrent one where no such considerations were made.
+\\\\
+The choice of step size carries with it assumptions of atomicity. By allowing \textit{list} and \textit{size} to change in one action we assume that elements can be inserted and removed from the list and that an integer can be fetched and incremented atomically.
+\\\\
+In this section we have described three concrete lessons learned from the project that are applicable to future work on specifications in TLA+. These were motivated by concrete experiences during the project.
 
 \section{The Usefulness of Formal Specification}
-Finally, a note on the usefulness of writing and model checking specifications: Sometimes formal specification can uncover rare or complex errors in algorithms and protocols~\cite{Lund2019, Zave2012}, but in this case it did not. Instead, my result may slightly increase confidence in the correctness of Shalev et al.'s hashmap, but arguably no more than a working implementation passing tests. That increase is a poor return on investment, especially if the user has to learn the tools.
+Finally, a note on the usefulness of writing and model checking specifications: Sometimes formal specification can uncover rare or complex errors in algorithms and protocols~\cite{Lund2019, Zave2012}, but in this case it did not. Instead, our result may slightly increase confidence in the correctness of Shalev et al.'s hashmap, but arguably no more than a working implementation passing tests. That increase is a poor return on investment, especially if the user has to learn the tools.
 \\\\
 It seems that formal specification and model checking has two uses:
 \begin{enumerate}
@@ -1390,10 +1417,9 @@ The results of model checking confirmed the claimed invariants of Shalev et al.'
 \\\\
 Additionally the experiences of formal specification using TLA+ and the TLC model checker were discussed and alternative uses proposed.
 \\\\
-We conclude that model checking gives some increased confidence in the correctness of Shalev et al.'s split-order hashmap, but that it is poorly suited to showing liveness properties in the absence of significant memory resources.
+We conclude that model checking gives increased confidence in the correctness of Shalev et al.'s split-order hashmap, but that it is poorly suited to showing liveness properties in the absence of significant memory resources.
 \\\\
 Finally, we note that model checking may have more value as a development tool for protocols, data structures and algorithms than as a way to prove correctness of existing programs.
-
 \backmatter
 \phantomsection
 \addcontentsline{toc}{chapter}{Bibliography}
