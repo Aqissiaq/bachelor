@@ -46,30 +46,38 @@
     We conclude that our formal verification gives increased confidence in the correctness of Shalev et al.'s hashmap, but that the method cannot be used as conclusive proof on its own. We also present three concrete lessons about formal verification motivated by experiences during development of the specification; decide on the purpose of a specification early, test assumed invariants, and choose step size early and deliberately.
 \end{abstract}
 
+\begin{acknowledgement}
+    I would like to thank\\\\
+    my advisor Håvard D. Johansen for fruitful discussions, actionable advice and follow-up above and beyond the call of duty;\\\\
+    the TLA+ google group\footnote{\url{https://groups.google.com/forum/\#!forum/tlaplus}} for quick help with technical problems; and\\\\
+    my office nieghbor Isak Ø. Hellemo for frequent rubber-ducking and idea-bouncing.
+\end{acknowledgement}
 \mainmatter
 
 \chapter{Introduction}
-Concurrent and distributed systems are extremely important in modern software development. Due to the difficulty of developing ever smaller and more powerful CPUs the trend in hardware design since about 2005 has been to increase the number of cores to allow for high levels of parallelization~\cite{Tanenbaum2014}. Additionally important areas of computing such as image processing and machine learning lend themselves well to such parallelization. [citation needed, Phuong?] At the same time software as a service and the massive scale industry giants like Amazon require a complex network of distributed systems to provide their functionality robustly and efficiently~\cite{Amazon2015}.
+Concurrent and distributed systems are extremely important in modern software development. Due to the end of Moore's law and the power wall making it difficult to construct ever denser and higher clock-speed CPUs the trend in hardware design since about 2005 has been to increase the number of cores and use high levels of both instruction-level parallelism and concurrency to improve performance~\cite{Tanenbaum2014}. Another example are areas of computing such as image processing and machine learning which lend themselves well to parallelization. At the same time software as a service and the massive scale industry giants like Amazon require a complex network of distributed systems to provide their functionality robustly and efficiently~\cite{Amazon2015}. It is therefore increasingly important to have access to concurrent data structures.
 \\\\
-Hash tables are an important data structure for a variety of applications because they allow for data retrieval in constant time. Several lock-based hash tables for concurrent systems exist [citations], but the overhead of lock management and difficulty of resizing often make these impractical or inefficient~\cite{Shalev2006}. A lock free alternative is proposed by Shalev and Shavit in \cite{Shalev2006}. This approach has proven to be useful~\cite{lock-free-structures2013} and scale better with number of concurrent processes than lock-based approaches~\cite{Duarte-Haskell2016}.
+Hash tables are an important data structure for a variety of applications because they allow for data retrieval in constant time. Several lock-based hash tables for concurrent systems exist, but the overhead of lock management and difficulty of resizing often make these impractical or inefficient~\cite{Shalev2006}. Lock-free approaches use atomic operations and novel structure to avoid this overhead. This approach has proven to be useful~\cite{lock-free-structures2013} and scale better with number of concurrent processes than lock-based approaches~\cite{Duarte-Haskell2016}. A lock free alternative is proposed by Shalev and Shavit in \cite{Shalev2006}. We will refer to their design as the Shalev Hash Table.
 \\\\
-In both small- and large-scale computer systems it is important to ensure correctness. This is especially evident in critical infrastructure, but all scales and importance levels benefit from confidence in the correctness of their systems. [citation needed]
-\\\\
-It is therefore troublesome that such systems are incredibly difficult to design, debug and reason about. The complexity of interactions between processes and sheer number of possible edge cases makes it infeasible for a person to determine correctness.
-\\\\
-Early solutions to the problem of proving correctness include Hoare~\cite{Hoare1969}, Floyd~\cite{Floyd1967} and Pnueli's~\cite{Pnueli1977} temporal logics and Leslie Lamport's Temporal Logic of Actions (TLA)~\cite{Lamport1977} which seek to formalize the execution of programs in order to reason about them with logic. These formal methods proved useful, but laborious~\cite{Clarke2009}.
-\\\\
-Building on the work in temporal logics, model checkers seek to minimize the human labor and ingenuity needed to prove correctness. This is done by specifying a model using some system of logic and then letting a model checker exhaustively survey the possible states of the system. This automates the process of proving correctness. One such model checker is the TLC model checker based on Lamport's TLA and incorporated in the TLA+ IDE.
+Shalev et al. present four invariants of their data structure and prove them inductively to demonstrate correct behavior.
 
 \section{Problem Statement}\label{sec:problem-statement}
-In this project we work with TLA+ and the TLC model checker to specify a novel concurrent hashmap structure due to Shalev et al.~\cite{Shalev2006}. The goal is to prove the following problem statement:
+Verification of correct behavior in computer systems is often desirable, but can be difficult in concurrent settings, especially in lock-free designs where locks cannot provide linearization points. 
+\\\\
+Early solutions to the problem of proving correctness include Hoare~\cite{Hoare1969}, Floyd~\cite{Floyd1967} and Pnueli's~\cite{Pnueli1977} temporal logics and Lamport's Temporal Logic of Actions (TLA)~\cite{Lamport1977} which seek to formalize the execution of programs in order to reason about them with logic. These formal methods proved useful, but laborious~\cite{Clarke2009}.
+\\\\
+Building on the work in temporal logics, model checkers seek to minimize the human labor and ingenuity needed to prove correctness. This is done by specifying a model using some system of logic and then letting a model checker exhaustively survey the possible states of the system. This automates the process of proving correctness.
+\\\\
+We will apply these methods to the Shalev Hash Table with the thesis that
 \begin{quote}
-    Shalev et al.'s split-ordered list design is a correct extensible hashmap for concurrent systems.
+    \emph{The Shalev Hash Table can be formally verified for concurrent settings.}
 \end{quote}
-Specifically we intend to show that a TLA+ specification displays the invariants Shalev et al. claim for their structure using the TLC model checker. In demonstrating this we will also explore and discuss the use of formal verification for concurrent data structures.
+We intend to show that a formal specification of the data structure can be checked using a model checker to increase our confidence in the claimed invariants.
+\\\\
+Additionally we will use this example to explore and discuss the use of model checkers for formal verification of concurrent data structures.
 
 \section{Method}
-In order to demonstrate the correctness of the hashmap, we specify its behavior using TLA+~\cite{Lamport_specifying_2002} and use the TLC model checker in the TLA+ toolbox~\cite{TLAplus} to test the claimed invariants.
+To demonstrate the correctness of the Shalev Hash Table, we specify its behavior using TLA+~\cite{Lamport_specifying_2002} and use the TLC model checker in the TLA+ toolbox~\cite{TLAplus} to test the claimed invariants.
 \\\\
 We construct four specifications:
 \begin{enumerate}
@@ -81,25 +89,28 @@ We construct four specifications:
 The first two are used to test the behavior of the structure in a non-concurrent setting which allows for a larger state space. The third is used to test a smaller state space in a concurrent setting, while the final specification is needed to test invariants relating to early termination of operations.
 
 \section{Scope}
-Showing the correctness of Shalev et al.'s hashmap structure requires two things:
-\begin{itemize}[label={}]
-    \item that the specification of the structure is correct and
-    \item that the behavior of the model checker is correct.
-\end{itemize}
-The latter is outside the scope of this project, but the TLC model checker is open source~\cite{TLAplus} and has been used in industry with success~\cite{Amazon2015, Lamport-Batson2002}.\\\\
-On the other hand, the specification is very much within the scope of this project. For a specification to be helpful in proving correctness of a system it is important that it specifies the system accurately, and that the properties checked by the model checker are precisely the properties we wish to show in the system. This is achieved through an explanation of the specification in \autoref{ch:specification} and the results are discussed in \autoref{ch:concluding-remarks}.
+The validity of formal verification with a model checker relies on two premises:
+\begin{enumerate}
+    \item that the specification of the structure is correct\label{premise:spec}
+    \item that the behavior of the model checker is correct.\label{premise:model-checker}
+\end{enumerate}
+The focus of this thesis is premise \ref{premise:spec}. For a specification to be helpful in proving correctness of a system it is important that it specifies the system accurately, and that the properties checked by the model checker are precisely the properties we wish to show in the system. We explain the specification in \autoref{ch:specification} and the properties in \autoref{ch:results}. Both are also discussed in \autoref{ch:concluding-remarks}
+\\\\
+Premise \ref{premise:model-checker} is outside the scope of this project, but the TLC model checker is open source~\cite{TLAplus} and has been used in industry with success~\cite{Amazon2015, Lamport-Batson2002}.
+\\\\
+This thesis is only concerned with formal verification of the Shalev Hash Table, not its implementation, performance or other proofs fo correctness.
 
 \section{Outline}
-\begin{enumerate}[label={}]
-    \item \textbf{\Autoref{ch:background}} discusses the motivation for formal verification and model checking, followed by a description of Temporal Logic in \autoref{sec:TL} and the TLA+ language in \autoref{sec:TLA+}. Finally Shalev et al.'s hashmap design is described in \autoref{sec:hashmap}.
-    \item \textbf{\Autoref{ch:specification}} describes the specification of the hashmap in TLA+ and the development of this specification.
-    \item \textbf{\Autoref{ch:results}} describes the method and results of model checking.
-    \item \textbf{\Autoref{ch:concluding-remarks}} discusses these results in relation to the problem statement, and explores experiences and lessons lerned.
-\end{enumerate}
-
+\textbf{\Autoref{ch:background}} discusses the motivation for formal verification and model checking through a review of related literature, followed by a description of Temporal Logic in \autoref{sec:TL} and the TLA+ language in \autoref{sec:TLA+}. Finally Shalev et al.'s hashmap design is described in \autoref{sec:hashmap}.
+\\\\
+\textbf{\Autoref{ch:specification}} describes the specification of the hashmap in TLA+ and the development of this specification.
+\\\\
+\textbf{\Autoref{ch:results}} describes the method and results of model checking.
+\\\\
+\textbf{\Autoref{ch:concluding-remarks}} discusses these results in relation to the problem statement, and explores experiences and lessons lerned.
 
 \chapter{Background}\label{ch:background}
-This section presents relevant prior work and background on model checking, TLA+ and Shalev et al.'s hashmap structure. \Autoref{sec:model-checking} briefly describes the development and use of formal verification and model checkers, \autoref{sec:TL} recounts Pnueli's~\cite{Pnueli1977} early work on temporal logic, and \autoref{sec:TLA+} covers the syntax and structure of TLA+. Finally \autoref{sec:hashmap} describes Shalev et al.'s data structure.
+This section presents relevant prior work and background on model checking, TLA+ and the Shalev Hash Table. \Autoref{sec:model-checking} briefly describes the development and use of formal verification and model checkers, \autoref{sec:TL} recounts Pnueli's~\cite{Pnueli1977} early work on temporal logic, and \autoref{sec:TLA+} covers the syntax and structure of TLA+. Finally \autoref{sec:hashmap} describes Shalev et al.'s data structure.
 
 \section{Model Checking}\label{sec:model-checking}
 \paragraph{Model Checking: Algorithmic Verification and Debugging~\cite{Clarke2009}}
@@ -129,7 +140,7 @@ Model checking also scales poorly with system complexity, so several techniques 
 \paragraph{How Amazon Web Services Uses Formal Methods~\cite{Amazon2015}}
 Amazon's AWS services are all underpinned by large and complex distributed systems. This is necessary for high availability, growth and cost-effective infrastructure. Traditionally these systems have been tested by savvy engineers who know what to test and look for. However, some errors are very rare and will very likely slip through such testing. To catch these errors they employ model checking (with TLA+).
 \\\\
-The PlusCal or TLA+ specifications work as a tool to bridge the gap between design and implementation. Designs are expressive, but inprecise while the implementation is precise, but hides overall structure. Through a choice of abstraction level, specifications can bridge this gap and provide both. An expressive specification also provides useful documentation of the system.
+The PlusCal or TLA+ specifications work as a tool to bridge the gap between design and implementation. Designs are expressive, but imprecise while the implementation is precise, but hides overall structure. Through a choice of abstraction level, specifications can bridge this gap and provide both. An expressive specification also provides useful documentation of the system.
 \\\\
 The key benefits of model checkers at Amazon are:
 \begin{itemize}
@@ -137,6 +148,8 @@ The key benefits of model checkers at Amazon are:
     \item they are faster than formal proofs
     \item a correct design and the understanding the specs provide promote better, more correct code.
 \end{itemize}
+\\\\
+In this section we have looked at the development of algorithmic model checkers, and their use in industry. We have seen that algorithmic model checker solve many of the issues with hand-written formal proofs, but still suffer from state space explosion. However, they have proven useful in the development process of distributed systems at Amazon Web Services by precisely describing systems and promoting understanding.
 
 \section{Temporal Logics}\label{sec:TL}
 \paragraph{The Temporal Logic of Programs ~\cite{Pnueli1977}}
@@ -198,8 +211,7 @@ These axioms define two ways to establish eventuality. \ref{axiom:2} says that a
 Using these axioms and inference rules as well as first-order logic, Pnueli goes on to formalize invariance and eventuality for sequential programs and concurrent programs.
 
 \begin{itemize}[label={}]
-    \item \textbf{Invariance} of the predicate $q(\pi, u)$ is described by the conjunction $\bigwedge\limits_{i}{\pi=l_i \implies q(l_i, u)}$, asserting that $q$ is true at all points of execution. This method is called an \textit{attachment} of the predicate to the program.
-    \newpage{}
+    \item \textbf{Invariance} of the predicate $q(\pi, u)$ is described by the conjunction $\bigwedge\limits_{i}{\pi=l_i \implies q(l_i, u)}$, asserting that $q$ is true at all points of execution. This method is called an \textit{attachment} of the predicate to the program.\\
     In a concurrent program we generalize $q$ to hold when any $\pi_i$ is updated by $N$ and construct either a full attachment
     $$\bigwedge\limits_{i_1, i_2,...,i_n}{(\pi_1 = i_1 \land \pi_2 = i_2 \land ... \land \pi_n = i_n) \implies q(\pi_1,..,\pi_n,u)}$$ shown here for $n$ concurrent execution threads,
     or the partial attachment
@@ -215,11 +227,13 @@ This lets us describe useful properties such as
     \item $p \implies F(q)$ -- if $p$ is true now, then at some point in the future $q$ will be true.
     \item $G(p \implies F(q))$ -- whenever $p$ is true it will eventually be followed by a state in which $q$ is true. (this is equivalent to $p \eventually q$)     
 \end{itemize}
+\\\\
+Pnueli gives us a powerful basic framework to describe and reason about both sequential and concurrent program execution which has informed many newer temporal logics, including TLA and TLA+.
 
 \section{TLA+}\label{sec:TLA+}
 This section introduces the structure and syntax of TLA+ necessary to follow the description of specifications in the following chapter.
 \\\\
-TLA+ is a formal specification language that describes a series of \textbf{actions} acting on \textbf{variables}. Each action statement is a logical predicate on a pair of states and a behavior adheres to a specification if this predicate holds for every step of the behavior.
+TLA+ is a formal specification language that describes a series of \textbf{actions} acting on \textbf{variables}. Each action statement is a logical predicate on a pair of states called a \textbf{step} and a sequence of steps -- called a \textbf{behavior} -- adheres to a specification if this predicate holds for every step of the behavior.
 \\\\
 The basic form of a specification is
 \begin{tla}
@@ -349,14 +363,16 @@ Insertion in to the map is done through atomic CAS instructions on the list. If 
 % structure of this chapter, structure of the spec, scope
 This chapter describes the structure of the TLA+ specification and the process of writing the specification. First we introduce the goals and scope of the specification, then describe the definitions of necessary data structures and operations.
 \\\\
-The specification consists of two main parts:
+We construct two specifications: a non-concurrent and a concurrent version.
+\\\\
+The non-concurrent specification consists of two main parts:
 \begin{enumerate}
     \item a generic hashmap and
-    \item SplitOrder \textit{implementing} this map.
+    \item SplitOrder \emph{implementing} this map.
 \end{enumerate}
 The generic specification describes the workings of a hashmap with insert and remove operations and ensures that this structure behaves as specified. The SplitOrder specification describes Shalev et al.'s specific structure and algorithms for implementing hashmap functionality.
 \\\\
-We present two versions of the specification at two levels of granularity. The first assumes the atomicity of hashmap operations, while the second describes entirely concurrent operations.
+The concurrent specification \textit{SOConcurrent} describes the Shalev Hash Table in a concurrent setting. This is accomplished by splitting operations into steps and letting the steps proceed independently of each other.
 
 \section{Goal}\label{sec:spec-goals}
 The purpose of our specification is to verify the claims about correctness made by Shalev et al. Because TLA+ is designed for checking liveness and safety properties~\cite{Lund2019} we will not check claims about the performance of the implementation. This leaves 4 invariants:
@@ -432,7 +448,7 @@ KeyHasValue == \forall k \in keys : ~(map[k] = NULL)
 (*******************************************************)
 (*The hashmap specification as a temporal formula      *)
 (*******************************************************) 
-HashmapSpec == HashmapInit /\ [][HashmapNext]_<<keys, map>>
+HashmapSpec == HashmapInit  /\ [][HashmapNext]_<<keys, map>>
 =============================================================================
 \end{tla}
 \begin{tlatex}
@@ -512,8 +528,8 @@ KeyHasValue asserts that every key is mapped to a value
 The hashmap specification as a temporal formula      
 \end{cpar}%
 \end{lcom}%
- \@x{ HashmapSpec \.{\defeq} HashmapInit \.{\land} {\Box} [ HashmapNext ]_{
- {\langle} keys ,\, map {\rangle}}}%
+ \@x{ HashmapSpec \.{\defeq} HashmapInit\@s{4.1} \.{\land} {\Box} [
+ HashmapNext ]_{ {\langle} keys ,\, map {\rangle}}}%
 \@x{}\bottombar\@xx{}%
 \end{tlatex}
     \caption{The hashmap specification}
@@ -521,9 +537,9 @@ The hashmap specification as a temporal formula
 \end{figure}
 The generic hashmap specification seen in \autoref{fig:hashmap-spec} describes how a hashmap \textit{should} behave. It maintains a set of keys \textit{keys} and a mapping \textit{map} from keys to values. Additionally it describes two operations: insert and remove.
 \\\\
-Insert adds a key to the set of keys and changes one entry in the map. The key is added with a set union, which preserves key uniqueness. Updating the map uses the \texttt{EXCEPT} construct, to say "the map is the same except the new key maps to the new value". The insert action is always enabled since there will always be keys and values in PossibleKeys and PossibleValues.
+Insert adds a key to the set of keys and changes one entry in the map. The key is added with a set union, which preserves key uniqueness. The insert action is always enabled since there will always be keys and values in PossibleKeys and PossibleValues.
 \\\\
-Remove removes one key from the set and changes its mapping to NULL. This is done through the set difference operator and the same \texttt{EXCEPT} construct as in insert. Both operations are idempotent, so attempting to remove a key that is not in the map will result in no change.
+Remove removes one key from the set and changes its mapping to NULL. This is done through the set difference operator. This action is idempotent, so attempting to remove a key that is not in the map will result in no change.
 \\\\
 The specification also contains temporal formulae \textit{TypeOK} and \textit{KeyHasValue} that specify correct behavior. These have been checked with the TLC model checker and holds for up to 16 possible values and 4 possible keys.
 \\\\
@@ -740,7 +756,11 @@ The \textit{SOFind} operation shown in \autoref{fig:SO-find} corresponds to the 
 \\\\
 The theorem $SOSpec \Rightarrow HashmapSpec$ seen in \autoref{fig:SO-implementation} states that any program following the split-order specification also follows the hashmap specification. Hence, any program following the split-order specification is a correct implementation of a hashmap. It is tested by checking the property \textit{HashmapSpec} in a model checking SOSpec.
 
-\subsection{Concurrent Specification}
+\section{Concurrent Specification}
+The specification described in \autoref{subsec:non-concurrent} describes the working of the split-order structure. However, it is not useful for proving the correctness of the structure in a concurrent setting. This is because its structure presupposes the linearizability of its operations by making them action statements. This means each state transition consists of a complete operation, rather than a single instruction.
+\\\\
+To specify concurrent working, a more granular specification is needed. In a complete description each step would be a single machine instruction, but this is both infeasible and counterproductive as such a specification is no more useful for verification than the program itself.
+\\\\
 \begin{figure}
     \begin{tla}
 OperationStates ==
@@ -782,7 +802,6 @@ OperationStates ==
     \caption{The operation structures}
     \label{fig:op-structure}
 \end{figure}
-
 \begin{figure}
     \begin{tla}
         (*Begin an insert operation*)
@@ -795,7 +814,7 @@ OperationStates ==
         NextStep(op) == activeOps' = (activeOps (-) SetToBag({op})) (+) SetToBag({[op EXCEPT !["step"] = op.step + 1]})
         End(op) == activeOps' = activeOps (-) SetToBag({op})
     \end{tla}
-\begin{tlatex}
+    \begin{tlatex}
 \@x{\@s{32.8}}%
 \@y{%
  Begin an insert operation
@@ -827,10 +846,9 @@ OperationStates ==
  \@x{\@s{32.8} End ( op ) \.{\defeq} activeOps \.{'} \.{=} activeOps
  \.{\ominus} SetToBag ( \{ op \} )}%
 \end{tlatex}
-    \caption{Starting and stepping through operations}
-    \label{fig:op-progress}
+\caption{Starting and stepping through operations}
+\label{fig:op-progress}
 \end{figure}
-
 \begin{figure}
     \begin{tla}
 SONext ==
@@ -881,7 +899,7 @@ SONext ==
     \caption{The concurrent Next action}
     \label{fig:concurrent-next}
 \end{figure}
-
+Instead, we identify the steps in the each operation that change the shared state of the system and make those the steps of our specification. This results in each operation (\textit{Insert, Remove}, and \textit{Bucket Init}) being split into several steps. We then maintain a multiset (called a "bag") of active operations of the form shown in \autoref{fig:op-structure} and step through them as shown in \autoref{fig:op-progress}. The result is the next-step action shown in \autoref{fig:concurrent-next}. This disjunction specifies that each next step can either start an insert or remove operation, or perform a single step in an active operation.
 \begin{figure}
     \begin{tla}
         (*Steps of a delete operation*)
@@ -980,12 +998,6 @@ SONext ==
     \caption{The steps of a \textit{Delete} operation}
     \label{fig:op-delete}
 \end{figure}
-The specification described in \autoref{subsec:non-concurrent} describes the working of the split-order structure. However, it is not useful for proving the correctness of the structure in a concurrent setting. This is because its structure presupposes the linearizability of its operations by making them action statements. This means each state transition consists of a complete operation, rather than a single instruction.
-\\\\
-To specify concurrent working, a more granular specification is needed. In a complete description each step would be a single machine instruction, but this is both infeasible and counterproductive as such a specification is no more useful for verification than the program itself.
-\\\\
-Instead, we identify the steps in the each operation that change the shared state of the system and make those the steps of our specification. This results in each operation (\textit{Insert, Remove}, and \textit{Bucket Init}) being split into several steps. We then maintain a multiset (called a "bag") of active operations of the form shown in \autoref{fig:op-structure} and step through them as shown in \autoref{fig:op-progress}. The result is the next-step action shown in \autoref{fig:concurrent-next}. This disjunction specifies that each next step can either start an insert or remove operation, or perform a single step in an active operation.
-\\\\
 To show the structure of a single operation in the concurrent specification, we will look at \textit{Delete} (\autoref{fig:op-delete}). \textit{Delete}1 checks if the relevant bucket is initialized and starts a bucket\_init operation if it is not. Because starting a new operation and advancing the current operation both modify the state of \textit{activeOps}, a union of both changes is needed. Also note that this step is enabled iff there exists an operation with type "delete" and step 1 in the set of active operations. \textit{Delete}2 removes a node from the list. This step is assumed to be atomic by our assumption that an atomic list implementation is available. Finally \textit{Delete}3 decrements count. Note that the previous step did not advance if a node was not removed, so the decrement step will always be taken if a delete operation has reached step 3.
 
 \chapter{Results}\label{ch:results}
@@ -1305,7 +1317,7 @@ In the concurrent specification each invariant was checked in isolation, again i
 %Notes
 %\begin{itemize}
     %        \item state space explosion from 2 to 3 values is immense
-    %        \item BucketsInitialized with 4 concurrent ops crashed my laptop
+    %        \item BucketsInitialized with 4 concurrent ops crashed my ly laptop
     %        \item Final InsertSucceeds spent 2/3 of the time on diameter 27
     %        \item Memory runs out later with DeleteSucceeds, probably because delete takes fewer steps so traces are shorter
     %        \item smaller tests have same diameter and state number, which is expected (good)
