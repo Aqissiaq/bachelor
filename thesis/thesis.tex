@@ -36,14 +36,14 @@
 
 \begin{abstract}
     %purpose/why?
-    Concurrent systems are increasingly important in a variety of application domains, but concurrent algorithms and data structures are difficult to design, debug and verify. Formal verification with model checkers is one way to verify concurrent structures by creating a specification of the structure and demonstrating properties by exhaustively checking possible states.\\\\
-    One important data structure is the extensible hashmap, and Shalev et al.~\cite{Shalev2006} present a novel lock-free way to implement them.
+    Concurrent systems are increasingly important in a variety of application domains, but concurrent algorithms and data structures are difficult to design, debug and verify. Locks are often used to provide linearization points, but introduce overhead. Lock-free approaches scale better with number of processes, but may be more difficult to design and verify. Shalev et al.~\cite{Shalev2006} present a novel lock-free way to implement extensible hashmaps.\\\\
+    Formal verification with model checkers is one way to verify concurrent structures by creating a specification of the structure and exhaustively checking properties across possible states.
     \\\\%arguments and claims/what?
     We present a formal specification of Shalev et al.'s lock-free hashmap in a concurrent setting and demonstrate that their claimed invariants hold for a subset of the state space using a model checker. We also discuss the merits of this demonstration and lessons learned from the process.
     \\\\%method/how?
-    We produce 4 specifications: a non-concurrent version of the hashmap structure, an idealized hashmap used to check the non-concurrent version, and two versions of the structure used to verify invariants in a concurrent setting. The specifications are written in TLA+ and checked using the TLC model checker.
+    We produce 4 specifications: a non-concurrent version of the hashmap structure, an idealized hashmap used to check the non-concurrent version, and two specifications to for concurrent settings. The specifications are written in TLA+ and checked using the TLC model checker.
     \\\\%conclusions
-    We conclude that our formal verification gives increased confidence in the correctness of Shalev et al.'s hashmap, but that the method cannot be used as conclusive proof on its own. We also present three concrete lessons about formal verification motivated by experiences during development of the specification; decide on the purpose of a specification early, test assumed invariants, and choose step size early and deliberately.
+    We use the formal verification to increase confidence in the correctness of Shalev et al.'s hashmap, but note that the method cannot be used as conclusive proof on its own. We also present three concrete lessons about formal verification motivated by experiences during development of the specification; decide on the purpose of a specification early, test assumed invariants, and choose step size early and deliberately.
 \end{abstract}
 
 \begin{acknowledgement}
@@ -52,12 +52,13 @@
     the TLA+ google group\footnote{\url{https://groups.google.com/forum/\#!forum/tlaplus}} for quick help with technical problems; and\\\\
     my office nieghbor Isak Ø. Hellemo for frequent rubber-ducking and idea-bouncing.
 \end{acknowledgement}
+
 \mainmatter
 
 \chapter{Introduction}
-Concurrent and distributed systems are extremely important in modern software development. Due to the end of Moore's law and the power wall making it difficult to construct ever denser and higher clock-speed CPUs the trend in hardware design since about 2005 has been to increase the number of cores and use high levels of both instruction-level parallelism and concurrency to improve performance~\cite{Tanenbaum2014}. Another example are areas of computing such as image processing and machine learning which lend themselves well to parallelization. At the same time software as a service and the massive scale industry giants like Amazon require a complex network of distributed systems to provide their functionality robustly and efficiently~\cite{Amazon2015}. It is therefore increasingly important to have access to concurrent data structures.
+Concurrent and distributed systems are extremely important in modern software systems. Due to the end of Moore's law and the power wall making it difficult to construct ever denser and higher clock-speed CPUs the trend in hardware design since about 2005 has been to increase the number of cores and use high levels of both instruction-level parallelism and concurrency to improve performance~\cite{Tanenbaum2014}. Another example are areas of computing such as image processing and machine learning which lend themselves well to parallelization. At the same time software as a service and the massive scale industry giants like Amazon require a complex network of distributed systems to provide their functionality robustly and efficiently~\cite{Amazon2015}. It is therefore increasingly important to have access to concurrent data structures.
 \\\\
-Hash tables are an important data structure for a variety of applications because they allow for data retrieval in constant time. Several lock-based hash tables for concurrent systems exist, but the overhead of lock management and difficulty of resizing often make these impractical or inefficient~\cite{Shalev2006}. Lock-free approaches use atomic operations and novel structure to avoid this overhead. This approach has proven to be useful~\cite{lock-free-structures2013} and scale better with number of concurrent processes than lock-based approaches~\cite{Duarte-Haskell2016}. A lock free alternative is proposed by Shalev and Shavit in \cite{Shalev2006}. We will refer to their design as the Shalev Hash Table.
+Hash tables are an important data structure for a variety of applications because they allow for data retrieval in constant time. Several lock-based hash tables for concurrent systems exist, but the overhead of lock management and difficulty of resizing often make these impractical or inefficient~\cite{Shalev2006}. Lock-free approaches use atomic operations and novel structure to avoid this overhead. This approach has proven to be useful~\cite{lock-free-structures2013} and scale better with number of concurrent processes than lock-based approaches~\cite{Duarte-Haskell2016}. A lock free hash table is proposed by Shalev and Shavit in \cite{Shalev2006}. We will refer to their design as the Shalev Hash Table and use hashmap and hash table interchangeably.
 \\\\
 Shalev et al. present four invariants of their data structure and prove them inductively to demonstrate correct behavior.
 
@@ -66,7 +67,7 @@ Verification of correct behavior in computer systems is often desirable, but can
 \\\\
 Early solutions to the problem of proving correctness include Hoare~\cite{Hoare1969}, Floyd~\cite{Floyd1967} and Pnueli's~\cite{Pnueli1977} temporal logics and Lamport's Temporal Logic of Actions (TLA)~\cite{Lamport1977} which seek to formalize the execution of programs in order to reason about them with logic. These formal methods proved useful, but laborious~\cite{Clarke2009}.
 \\\\
-Building on the work in temporal logics, model checkers seek to minimize the human labor and ingenuity needed to prove correctness. This is done by specifying a model using some system of logic and then letting a model checker exhaustively survey the possible states of the system. This automates the process of proving correctness.
+Building on the work in temporal logics, model checkers seek to minimize the human labor and ingenuity needed to prove correctness. Instead they specify a model using some system of logic and then let a model checker exhaustively survey the possible states of the system. This automates the process of proving correctness.
 \\\\
 We will apply these methods to the Shalev Hash Table with the thesis that
 \begin{quote}
@@ -98,7 +99,7 @@ The focus of this thesis is premise \ref{premise:spec}. For a specification to b
 \\\\
 Premise \ref{premise:model-checker} is outside the scope of this project, but the TLC model checker is open source~\cite{TLAplus} and has been used in industry with success~\cite{Amazon2015, Lamport-Batson2002}.
 \\\\
-This thesis is only concerned with formal verification of the Shalev Hash Table, not its implementation, performance or other proofs fo correctness.
+This thesis is only concerned with formal verification of the Shalev Hash Table, not its implementation, performance or other proofs of correctness.
 
 \section{Outline}
 \textbf{\Autoref{ch:background}} discusses the motivation for formal verification and model checking through a review of related literature, followed by a description of Temporal Logic in \autoref{sec:TL} and the TLA+ language in \autoref{sec:TLA+}. Finally Shalev et al.'s hashmap design is described in \autoref{sec:hashmap}.
@@ -149,7 +150,7 @@ The key benefits of model checkers at Amazon are:
     \item a correct design and the understanding the specs provide promote better, more correct code.
 \end{itemize}
 \\\\
-In this section we have looked at the development of algorithmic model checkers, and their use in industry. We have seen that algorithmic model checker solve many of the issues with hand-written formal proofs, but still suffer from state space explosion. However, they have proven useful in the development process of distributed systems at Amazon Web Services by precisely describing systems and promoting understanding.
+In this subsection we have looked at the development of algorithmic model checkers and their use in industry. We have seen that algorithmic model checker solve many of the issues with hand-written formal proofs, but still suffer from state space explosion. However, they have proven useful in the development process of distributed systems at Amazon Web Services by precisely describing systems and promoting understanding.
 
 \section{Temporal Logics}\label{sec:TL}
 \paragraph{The Temporal Logic of Programs ~\cite{Pnueli1977}}
@@ -164,10 +165,10 @@ To reason about concurrent programs we let states have multiple control componen
 We can now start to define useful properties of the systems described in this way.
 \begin{itemize}[label={}]
     \item \textbf{Partial correctness} is the claim that given the correct input, a program produces the correct output. We let $\phi(x)$ be the statement "reaching the end state $\implies$ (correct input $\implies$ correct output)". Partial correctness is equivalent to saying $\phi$ is an invariant.
-    \item \textbf{Clean execution} means the program does not behave illegally, i.e it does not access illegal memory locations or divide by zero. We may define these restrictions as a predicate to make clean execution equivalent to this predicate being invariant.
+    \item \textbf{Clean execution} means the program does not behave illegally, e.g. it does not access illegal memory locations or divide by zero. We may define these restrictions as a predicate to make clean execution equivalent to this predicate being invariant.
     \item \textbf{Mutual exclusion}. Given a critical section $C$, mutual exclusion of the processes $\pi_1$ and $\pi_2$ is described by the invariance of the predicate $\lnot(\pi_1 \in C \land \pi_2 \in C)$.
 \end{itemize}
-In addition to these properties we wish to reason about \textit{temporal} implications. We let time be described by a $t \in \N$ and $H(p,t)$ denote the value of the predicate $p$ at time $t$.
+In addition to these properties we wish to reason about \textit{temporal} implications. We let time be described by $t \in \N$ and $H(p,t)$ denote the value of the predicate $p$ at time $t$.
 We then introduce the temporal operator $p \eventually q$ to mean $p$ eventually leads to $q$, or formally:
 $$p \eventually q: \forall t_1 \exists t_2\ s.t\ t_1 \le t_2,  H(p, t_1) \implies H(q, t_2)$$
 For all times $t_1$ there is a later time $t_2$ such that if $p$ holds at $t_1$, $q$ will hold at $t_2$.
@@ -315,25 +316,19 @@ Additionally TLA+ includes the temporal operators $\Box$ and $\Diamond$ meaning 
 Finally, implementation in TLA+ is implication. If specification A implements specification B this is exactly equivalent to $A \implies B$. If A is true on a behavior, then B is also true on that behavior.
 
 \section{Split-Ordered List Hashmap}\label{sec:hashmap}
-This section provides a description of Shalev et al.'s split-order hashmap structure~\cite{Shalev2006} -- the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
+This section provides a description of the Shalev Hash Table~\cite{Shalev2006} -- the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
 \\\\
-Hashmaps are a key building block in many important systems [citation needed], but are difficult to implement concurrently. In particular, the resizing (extending) of the table is difficult to do atomically because at the very least a node must be moved from one list to another. In order to avoid conflicts and loss of data in this process some overhead is required which impacts performance.
+Hashmaps are a key building block in many important systems, but are difficult to implement concurrently. In particular, the resizing (extending) of the table is difficult to do atomically because at the very least a node must be moved from one list to another. In order to avoid conflicts and loss of data in this process some overhead is required which impacts performance.
 \\\\
 The key insight of Shalev et al. is to flip the process upside down. Instead of moving nodes between buckets, they suggest moving the buckets among a statically ordered list of nodes. This requires an ordering of the list in which a bucket can always be split into two new buckets while their contents remain correct. A node should always reside in the bucket corresponding to its key $\bmod{2^i}$ where $2^i$ is the current size of the table.
-
-\paragraph{Split-Ordered Lists}
-are introduced to make resizing of the map possible without introducing locks. By sorting the keys according to their reversed binary representation Shalev et al. obtain a list which can be always be split into buckets $\bmod{2^i}$. This is because such an ordering corresponds to difference in the keys' $i$th least significant bit, which is equivalent to having a different remainder $\bmod{2^i}$.
-\\\\
-To deal with the problems caused by removing nodes pointed to by hash table entries dummy nodes with the bucket value are introduced. These nodes signify the start of a bucket and are recursively initialized when an item is inserted into an unitialized bucket. To distinguish dummy nodes from regular nodes in the list, regular node keys have their most significant bit set to 1 before being reversed. This order and the structure of the map can be seen in \autoref{fig:split-order}.
-\\\\
-Insertion in to the map is done through atomic CAS instructions on the list. If a bucket is not initialized, a dummy node is created and inserted into the list before the new value is added as shown in \autoref{fig:simple-insert}. The map is expanded by doubling the number of buckets and inserting new dummy nodes. Because of the split-ordering of the list, it is always possible to insert a new bucket by splitting an existing one. This process is shown in \autoref{fig:insert-expand}.
 \begin{figure}
     \includegraphics[width=\textwidth]{split-ordered-list-diagram.png}
 \caption{The layout of the split-ordered list}
 \label{fig:split-order}
 \end{figure}
-
-\begin{figure}
+\paragraph{Split-Ordered Lists} are introduced to make resizing of the map possible without introducing locks. By sorting the keys according to their reversed binary representation Shalev et al. obtain a list which can be always be split into buckets $\bmod{2^i}$. This is because such an ordering corresponds to difference in the keys' $i$th least significant bit, which is equivalent to having a different remainder $\bmod{2^i}$.\\\\
+To deal with the problems caused by removing nodes pointed to by hash table entries dummy nodes with the bucket value are introduced. These nodes signify the start of a bucket and are recursively initialized when an item is inserted into an unitialized bucket. To distinguish dummy nodes from regular nodes in the list, regular node keys have their most significant bit set to 1 before being reversed. This order and the structure of the map is shown in \autoref{fig:split-order}.
+\begin{figure}[h!]
     \centering
     \subfloat[Initial state]{\includegraphics[width=.5\textwidth]{insert-0.png}}
     \subfloat[Dummy node is created]{\includegraphics[width=.5\textwidth]{insert-1.png}}
@@ -343,7 +338,8 @@ Insertion in to the map is done through atomic CAS instructions on the list. If 
 \caption{Insertion without bucket splitting}    
 \label{fig:simple-insert}
 \end{figure}
-
+\\\\
+Insertion in to the map is done through atomic CAS instructions on the list. If a bucket is not initialized, a dummy node is created and inserted into the list before the new value is added as shown in \autoref{fig:simple-insert}. The map is expanded by doubling the number of buckets and inserting new dummy nodes. Because of the split-ordering of the list, it is always possible to insert a new bucket by splitting an existing one. This process is shown in \autoref{fig:insert-expand}.
 \begin{figure}
     \centering
     \subfloat[Initial state]{\includegraphics[height=2in]{expand-0.png}}
@@ -382,10 +378,11 @@ The purpose of our specification is to verify the claims about correctness made 
     \item if a key $k$ is in the map, then \texttt{insert(k)} fails. Otherwise $k$ is added to the map
     \item if a key $k$ is in the map, then \texttt{remove(k)} removes it from the map. Otherwise it fails.
 \end{enumerate}
-The non-concurrent specification demonstrates correctness by implementing a generic hashmap specification which describes corerct behavior, while the concurrent specification looks directly at the above invariants.
-Additionally we will check \textit{type safety}: at every point of execution, all keys and values are members of predefined key- and value-sets, respectively.
+The non-concurrent specification demonstrates correctness by implementing a generic hashmap specification which describes correct behavior, while the concurrent specification looks directly at the above invariants.
+Additionally we will check \textit{type safety}: at every point of execution, all keys and values are members of predefined key- and value-sets respectively.
 
 \section{Non-Concurrent Specification}
+This section describes an idealized hashmap and a coarse specification of the Shalev Hash Table.
 \subsection{Hashmap for Implementation}
 \begin{figure}
     \begin{tla}
@@ -535,7 +532,7 @@ The hashmap specification as a temporal formula
     \caption{The hashmap specification}
     \label{fig:hashmap-spec}
 \end{figure}
-The generic hashmap specification seen in \autoref{fig:hashmap-spec} describes how a hashmap \textit{should} behave. It maintains a set of keys \textit{keys} and a mapping \textit{map} from keys to values. Additionally it describes two operations: insert and remove.
+The generic hashmap specification seen in \autoref{fig:hashmap-spec} describes how a hashmap \emph{should} behave. It maintains a set of keys \textit{keys} and a mapping \textit{map} from keys to values. Additionally it describes two operations: insert and remove.
 \\\\
 Insert adds a key to the set of keys and changes one entry in the map. The key is added with a set union, which preserves key uniqueness. The insert action is always enabled since there will always be keys and values in PossibleKeys and PossibleValues.
 \\\\
@@ -547,7 +544,7 @@ Finally the entire hashmap is described by \textit{HashmapSpec}. This temporal f
 
 \subsection{Non-Concurrent Specification}\label{subsec:non-concurrent}
 The specification consists of three main parts:
-\begin{enumerate}
+\begin{enumerate}[label=\textbf{\arabic*.}]
     \item \label{SpecList:structures} the data structures,
     \item \label{SpecList:operations} operations on the map, and
     \item \label{SpecList:spec} the abstract specification tying them together.
@@ -617,8 +614,7 @@ The Init for split-order
 \caption{The initial state of the specification}
 \label{fig:SO-init}
 \end{figure}
-\\\\
-The necessary data structures are a list of nodes and an array of buckets pointing to nodes. These are both specified as TLA+ functions. The list is a function from the set of list-keys to the set of values, while bucekts is a function from keys to list-keys. Additionally the specification includes a set of keys and a map from keys to values that correspond to the keys and map in the generic specification. The initial state of the map, showing these structures and their initial values is shown in \autoref{fig:SO-init}
+\paragraph{1.}The necessary data structures are a list of nodes and an array of buckets pointing to nodes. These are both specified as TLA+ functions. The list is a function from the set of list-keys to the set of values, while bucekts is a function from keys to list-keys. Additionally the specification includes a set of keys and a map from keys to values that correspond to the keys and map in the generic specification. The initial state of the map, showing these structures and their initial values is shown in \autoref{fig:SO-init}
 
 \begin{figure}
 \begin{tla}
@@ -679,8 +675,7 @@ ListInsert(k, v) == IF list[k] = NULL
 \caption{The \textit{Insert} operation}
 \label{fig:SO-insert}
 \end{figure}
-\\\\
-The \textit{Insert} and \textit{Remove} operations are written in three layers. \autoref{fig:SO-insert} shows the Insert operation. First, \textit{SOInsert} describes a very high-level view: there exists some key and some value, and we insert the value with that key. \textit{BucketInsert} is the most involved, corresponding to the insert operation described by Shalev et al.'s pseudocode~\cite{Shalev2006}. Here the correct bucket is found or initialized and the value is inserted into the list pointed to by this bucket with the split-order key. FInally, \textit{ListInsert} inserts the value into the list, or ignores it if the node already has a value.
+\paragraph{2.}The \textit{Insert} and \textit{Remove} operations are written in three layers. \autoref{fig:SO-insert} shows the Insert operation. First, \textit{SOInsert} describes a very high-level view: there exists some key and some value, and we insert the value with that key. \textit{BucketInsert} is the most involved, corresponding to the insert operation described by Shalev et al.'s pseudocode~\cite{Shalev2006}. Here the correct bucket is found or initialized and the value is inserted into the list pointed to by this bucket with the split-order key. FInally, \textit{ListInsert} inserts the value into the list, or ignores it if the node already has a value.
 
 \begin{figure}
     \begin{tla}
@@ -699,8 +694,7 @@ The \textit{Insert} and \textit{Remove} operations are written in three layers. 
     \caption{The Next action}
     \label{fig:SO-next}
 \end{figure}
-\\\\
-Finally, the \textit{Next} action shown in \autoref{fig:SO-next} describes the transition of the system from one state to another. It states that such a transition consists of either inserting and growing the map, removing, or the \textit{SOFind} operation.
+\paragraph{3.}Finally, the \textit{Next} action shown in \autoref{fig:SO-next} describes the transition of the system from one state to another. It states that such a transition consists of either inserting and growing the map, removing, or the \textit{SOFind} operation.
 
 \begin{figure}
     \begin{tla}
@@ -757,7 +751,7 @@ The \textit{SOFind} operation shown in \autoref{fig:SO-find} corresponds to the 
 The theorem $SOSpec \Rightarrow HashmapSpec$ seen in \autoref{fig:SO-implementation} states that any program following the split-order specification also follows the hashmap specification. Hence, any program following the split-order specification is a correct implementation of a hashmap. It is tested by checking the property \textit{HashmapSpec} in a model checking SOSpec.
 
 \section{Concurrent Specification}
-The specification described in \autoref{subsec:non-concurrent} describes the working of the split-order structure. However, it is not useful for proving the correctness of the structure in a concurrent setting. This is because its structure presupposes the linearizability of its operations by making them action statements. This means each state transition consists of a complete operation, rather than a single instruction.
+The specification described in \autoref{subsec:non-concurrent} describes the working of the split-order structure. However, it is not useful for proving the correctness of the structure in a concurrent setting. Because its structure presupposes the linearizability of its operations by making them action statements, each state transition consists of a complete operation rather than a single instruction.
 \\\\
 To specify concurrent working, a more granular specification is needed. In a complete description each step would be a single machine instruction, but this is both infeasible and counterproductive as such a specification is no more useful for verification than the program itself.
 \\\\
@@ -803,51 +797,9 @@ OperationStates ==
     \label{fig:op-structure}
 \end{figure}
 \begin{figure}
-    \begin{tla}
-        (*Begin an insert operation*)
-        Insert(k, v) == activeOps' = activeOps (+) SetToBag({[type|-> "insert", step |-> 1, key |-> k, value |-> v]})
-        (*Begin a delete operation*)
-        Delete(k) == activeOps' = activeOps (+) SetToBag({[type|-> "delete", step |-> 1, key |-> k]})
-        (*Begin a bucket_init operation*)
-        BucketInit(b) == activeOps' = activeOps (+) SetToBag({[type|-> "bucket_init", step |-> 1, bucket |-> b]})
-        
-        NextStep(op) == activeOps' = (activeOps (-) SetToBag({op})) (+) SetToBag({[op EXCEPT !["step"] = op.step + 1]})
-        End(op) == activeOps' = activeOps (-) SetToBag({op})
-    \end{tla}
-    \begin{tlatex}
-\@x{\@s{32.8}}%
-\@y{%
- Begin an insert operation
-}%
-\@xx{}%
- \@x{\@s{32.8} Insert ( k ,\, v ) \.{\defeq} activeOps \.{'} \.{=} activeOps
- \.{\oplus} SetToBag ( \{ [ type \.{\mapsto}\@w{insert} ,\, step \.{\mapsto}
- 1 ,\, key \.{\mapsto} k ,\, value \.{\mapsto} v ] \} )}%
-\@x{\@s{32.8}}%
-\@y{%
- Begin a delete operation
-}%
-\@xx{}%
- \@x{\@s{32.8} Delete ( k ) \.{\defeq} activeOps \.{'} \.{=} activeOps
- \.{\oplus} SetToBag ( \{ [ type \.{\mapsto}\@w{delete} ,\, step \.{\mapsto}
- 1 ,\, key \.{\mapsto} k ] \} )}%
-\@x{\@s{32.8}}%
-\@y{%
- Begin a bucket_init operation
-}%
-\@xx{}%
- \@x{\@s{32.8} BucketInit ( b ) \.{\defeq} activeOps \.{'} \.{=} activeOps
- \.{\oplus} SetToBag ( \{ [ type \.{\mapsto}\@w{bucket\_init} ,\, step
- \.{\mapsto} 1 ,\, bucket \.{\mapsto} b ] \} )}%
-\@pvspace{8.0pt}%
- \@x{\@s{32.8} NextStep ( op ) \.{\defeq} activeOps \.{'} \.{=} ( activeOps
- \.{\ominus} SetToBag ( \{ op \} ) ) \.{\oplus} SetToBag ( \{ [ op {\EXCEPT}
- {\bang} [\@w{step} ] \.{=} op . step \.{+} 1 ] \} )}%
- \@x{\@s{32.8} End ( op ) \.{\defeq} activeOps \.{'} \.{=} activeOps
- \.{\ominus} SetToBag ( \{ op \} )}%
-\end{tlatex}
-\caption{Starting and stepping through operations}
-\label{fig:op-progress}
+    \includegraphics[width=\textwidth]{SOConcurrent_steps.png}
+    \caption{Starting and stepping through operations}
+    \label{fig:op-progress}
 \end{figure}
 \begin{figure}
     \begin{tla}
@@ -1001,16 +953,16 @@ Instead, we identify the steps in the each operation that change the shared stat
 To show the structure of a single operation in the concurrent specification, we will look at \textit{Delete} (\autoref{fig:op-delete}). \textit{Delete}1 checks if the relevant bucket is initialized and starts a bucket\_init operation if it is not. Because starting a new operation and advancing the current operation both modify the state of \textit{activeOps}, a union of both changes is needed. Also note that this step is enabled iff there exists an operation with type "delete" and step 1 in the set of active operations. \textit{Delete}2 removes a node from the list. This step is assumed to be atomic by our assumption that an atomic list implementation is available. Finally \textit{Delete}3 decrements count. Note that the previous step did not advance if a node was not removed, so the decrement step will always be taken if a delete operation has reached step 3.
 
 \chapter{Results}\label{ch:results}
-In this section we present the process and results of model checking the specification. First we describe the method of checking and the properties checked by the model. Then we present the quantitative results along with commentary on these results. \Autoref{sec:tech-details} covers the technical details of this process.
+In this section we present the process and results of model checking the specifications. First we describe the method of checking and the properties checked by the model. Then we present the quantitative results along with commentary on these results. \Autoref{sec:tech-details} covers the technical details of this process.
 
 \section{Method}
 To demonstrate the invariants claimed by Shalev et al.~\cite{Shalev2006} we use the TLC model checker to test the specifications outlined in \autoref{sec:spec-goals}. The first specification (\autoref{subsec:non-concurrent}) was tested by setting \textit{HashmapSpec} as a property of the model, thus showing that SplitOrder implements the generic hashmap specification.
 \\\\
-\textit{SOConcurrent} is more granular than the abstract specification which makes it difficult to demonstrate implementation. Instead the invariants were written as predicates in TLA such that they can be checked by the TLC model checker. The following paragraphs describe these invariants in turn.
+\textit{SOConcurrent} is more granular than the abstract specification which makes it difficult to demonstrate implementation. Instead the invariants were written as predicates in TLA+ such that they can be checked by the TLC model checker. The following paragraphs describe these invariants in turn.
 \\\\
 The first invariant states that the list beginning at bucket 0 is always sorted. Because our list is specified as a function from positions to values, this is trivialy true for the specification.
 \\\\
-The second invariant asserts that if a bucket is initialized, then it points to a dummy node in the list. This is captured by \textit{BucketsInitialized} (\autoref{fig:invariant2}) which asserts each bucket is either NULL, or points to an initialized node in the list. This is an invariant on a single state and can be checked straightforwardly.
+The second invariant asserts that if a bucket is initialized, then it points to a dummy node in the list. This is captured by \textit{BucketsInitialized} (\autoref{fig:invariant2}) which asserts each bucket is either NULL, or points to an initialized node in the list. This is an invariant on a single state and can be checked straightforwardly.\\\\
 \begin{figure}[h]
     \begin{tla}
         (*Each bucket is either unitialized or points to a node with the dummy key*)
@@ -1034,8 +986,6 @@ The second invariant asserts that if a bucket is initialized, then it points to 
     \caption{Invariant 2 as a TLA predicate}
     \label{fig:invariant2}
 \end{figure}
-\\\\
-Invariant 3 and 4 are both statements about a behavior, rather than a state. This makes them liveness properties and therefore more difficult to check. \Autoref{fig:invariants} shows half of each invariant, namely that \textit{Insert(k)} succeeds if $k$ is not present and \textit{Delete(k)} succeeds if $k$ is present. To do this they make use of the $\Diamond$ operator meaning "eventually" to claim "if an insert is initiated and the key is not in the map, then eventually the value will be inserted", and the opposite for \textit{Delete}. Also note that both properties are written in terms of the constant set of all possible operation states because TLC cannot check liveness properties which include existential qualifiers ($\E$ and $\A$) over variables.
 \begin{figure}[h]
     \begin{tla}
 (*An insert with key not in map will succeed*)
@@ -1105,8 +1055,7 @@ DeleteSucceeds ==
     \caption{The claimed invariants as TLA predicates}
     \label{fig:invariants}
 \end{figure}
-\\\\
-The second halves of invariant 3 and 4 (\autoref{fig:fail-invariants}) introduce another complication. To show that an operation fails, it is necessary to differentiate them, so that we can make claims about the failure of a specific operation. The differentiation is done by introducing an additional ID element in each operation. Additionally the properties make use of the $\Box$ operator meaning "always" to claim "if an insert operation is initiated and the key is already in the map, that operation never reaches step 3".
+Invariant 3 and 4 are both statements about a behavior, rather than a state. This makes them liveness properties and therefore more difficult to check. \Autoref{fig:invariants} shows half of each invariant, namely that \textit{Insert(k)} succeeds if $k$ is not present and \textit{Delete(k)} succeeds if $k$ is present. To do this they make use of the $\Diamond$ operator meaning "eventually" to claim "if an insert is initiated and the key is not in the map, then eventually the value will be inserted", and the opposite for \textit{Delete}. Also note that both properties are written in terms of the constant set of all possible operation states because TLC cannot check liveness properties which include existential qualifiers ($\E$ and $\A$) over variables.\\\\
 \begin{figure}[h]
     \begin{tla}
 (*An insert with key in map will not reach step 3*)
@@ -1204,8 +1153,9 @@ OperationStates ==
 \caption{The failure invariants as TLA predicates}
 \label{fig:fail-invariants}
 \end{figure}
+The second halves of invariant 3 and 4 (\autoref{fig:fail-invariants}) introduce another complication. To show that an operation fails, it is necessary to differentiate them, so that we can make claims about the failure of a specific operation. The differentiation is done by introducing an additional ID element in each operation. Additionally the properties make use of the $\Diamond \Box$ operator to claim that an invalid operation will eventually always abort.
 \\\\
-Having formalized these invariants we are left with one safety property and four liveness properties, as well as the non-concurrent specification.
+Having formalized these invariants we are left with one safety property \textit{BucketsInitialized} and four liveness properties \textit{InsertSucceeds, DeleteSucceeds, Insertfails} and \textit{DeleteFails}.
 
 \section{Technical Details}\label{sec:tech-details}
 Tests were run with version 2.15 of the TLC model checker on a Intel(R) Core i5-8250U CPU with 8~GiB of memory and 250~GiB of hard drive space running Ubuntu 18.04. TLC was set to use 8 worker threads and 6~GiB of memory.
@@ -1309,20 +1259,11 @@ In the concurrent specification each invariant was checked in isolation, again i
     \label{tab:errors}
 \end{table}
 \\
-\Autoref{tab:SOConcurrent} shows the results of checking \textit{InsertSucceeds} and \textit{DeleteSucceeds}. Both exhaust the available memory attempting to check a map with 4 possible keys and 3 possible values in approximately 30 minutes. However, both hold for a smaller map with only 2 possible values and this completed in only a few minutes. Also note that \textit{DeleteSucceeds} runs out of memory having explored all most 5 times the number of unique states. The descrepancy in space explored is likely because an insert operaeration takes 4 steps, while a delete takes only 3 leading to shorter behavior traces for deletes.
+\Autoref{tab:SOConcurrent} shows the results of checking \textit{InsertSucceeds} and \textit{DeleteSucceeds}. Both exhaust the available memory attempting to check a map with 4 possible keys and 3 possible values in approximately 30 minutes. However, both hold for a smaller map with only 2 possible values and this completed in only a few minutes. Also note that \textit{DeleteSucceeds} runs out of memory having explored almost 5 times the number of unique states. The descrepancy in space explored is likely because an insert operation takes 4 steps, while a delete takes only 3 leading to shorter behavior traces for deletes.
 \\\\
 \Autoref{tab:SOConcurrent} also shows the result of checking \textit{BucketsInitialized} on the same specification. Since \textit{BucektsInitialized} is a safety property, memory is not consumed as quickly as with the earlier liveness properties and \textit{BucektsInitialized} was shown to hold for up to 4 keys and 5 values. Additionally this property was checked for larger numbers of concurrent operations. Note that a map with 4 keys and 2 values was fully explored for 2 concurrent operations in 22 seconds, but took 14 minutes with 3 concurrent operations. 4 concurrent operations forced a reboot after 26 minutes.
 \\\\
 \Autoref{tab:failed-checks} and \ref{tab:errors} describe model checking runs which failed to complete due to memory or disk space constraints.
-%Notes
-%\begin{itemize}
-    %        \item state space explosion from 2 to 3 values is immense
-    %        \item BucketsInitialized with 4 concurrent ops crashed my ly laptop
-    %        \item Final InsertSucceeds spent 2/3 of the time on diameter 27
-    %        \item Memory runs out later with DeleteSucceeds, probably because delete takes fewer steps so traces are shorter
-    %        \item smaller tests have same diameter and state number, which is expected (good)
-    %        \item DeleteSucceeds triggers GC fault instead of out-of-memory. Might mean less of the memory is reclaimable?
-    %\end{itemize}
 \begin{table}
     \centering
     \resizebox{\textwidth}{!}{%
