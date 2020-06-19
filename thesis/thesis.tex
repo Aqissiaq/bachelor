@@ -50,7 +50,7 @@
     I would like to thank\\\\
     my advisor Håvard D. Johansen for fruitful discussions, actionable advice and follow-up above and beyond the call of duty;\\\\
     the TLA+ google group\footnote{\url{https://groups.google.com/forum/\#!forum/tlaplus}} for quick help with technical problems; and\\\\
-    my office nieghbor Isak Ø. Hellemo for frequent rubber-ducking and idea-bouncing.
+    my office neighbor Isak Ø. Hellemo for frequent rubber-ducking and idea-bouncing.
 \end{acknowledgement}
 
 \mainmatter
@@ -83,8 +83,8 @@ To demonstrate the correctness of the Shalev Hash Table, we specify its behavior
 We construct four specifications:
 \begin{enumerate}
     \item a generic hashmap,
-    \item a non-concurrent specification of the split-order structure,
-    \item a concurrent specification of the split-order structure, and
+    \item a non-concurrent specification of the Shalev Hash Table,
+    \item a concurrent specification of the Shalev Hash Table, and
     \item a concurrent specification with operation ID's.
 \end{enumerate}
 The first two are used to test the behavior of the structure in a non-concurrent setting which allows for a larger state space. The third is used to test a smaller state space in a concurrent setting, while the final specification is needed to test invariants relating to early termination of operations.
@@ -150,7 +150,7 @@ The key benefits of model checkers at Amazon are:
     \item a correct design and the understanding the specs provide promote better, more correct code.
 \end{itemize}
 \\\\
-In this subsection we have looked at the development of algorithmic model checkers and their use in industry. We have seen that algorithmic model checker solve many of the issues with hand-written formal proofs, but still suffer from state space explosion. However, they have proven useful in the development process of distributed systems at Amazon Web Services by precisely describing systems and promoting understanding.
+In this section we have looked at the development of algorithmic model checkers and their use in industry. We have seen that algorithmic model checker solve many of the issues with hand-written formal proofs, but still suffer from state space explosion. However, they have proven useful in the development process of distributed systems at Amazon Web Services by precisely describing systems and promoting understanding.
 
 \section{Temporal Logics}\label{sec:TL}
 \paragraph{The Temporal Logic of Programs ~\cite{Pnueli1977}}
@@ -315,7 +315,7 @@ Additionally TLA+ includes the temporal operators $\Box$ and $\Diamond$ meaning 
 \\\\
 Finally, implementation in TLA+ is implication. If specification A implements specification B this is exactly equivalent to $A \implies B$. If A is true on a behavior, then B is also true on that behavior.
 
-\section{Split-Ordered List Hashmap}\label{sec:hashmap}
+\section{Shalev Hash Table}\label{sec:hashmap}
 This section provides a description of the Shalev Hash Table~\cite{Shalev2006} -- the first lock-free extensible hash table implemented using only loads, stores and atomic Compare and Swap (CAS).
 \\\\
 Hashmaps are a key building block in many important systems, but are difficult to implement concurrently. In particular, the resizing (extending) of the table is difficult to do atomically because at the very least a node must be moved from one list to another. In order to avoid conflicts and loss of data in this process some overhead is required which impacts performance.
@@ -1359,7 +1359,7 @@ The choice of step size carries with it assumptions of atomicity. By allowing \t
 \\\\
 In this section we have described three concrete lessons learned from the project that are applicable to future work on specifications in TLA+. These were motivated by concrete experiences during the project.
 
-\section{The Usefulness of Formal Specification}
+\section{The Use of Formal Verification}
 Finally, a note on the usefulness of writing and model checking specifications: Sometimes formal specification can uncover rare or complex errors in algorithms and protocols~\cite{Lund2019, Zave2012}, but in this case it did not. Instead, our result may slightly increase confidence in the correctness of Shalev et al.'s hashmap, but arguably no more than a working implementation passing tests. That increase is a poor return on investment, especially if the user has to learn the tools.
 \\\\
 It seems that formal specification and model checking has two uses:
